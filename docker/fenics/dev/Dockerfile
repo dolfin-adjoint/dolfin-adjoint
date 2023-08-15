@@ -7,6 +7,7 @@
 # Jørgen S. Dokken <dokken@simula.no>
 
 FROM ghcr.io/scientificcomputing/fenics-gmsh:2023-04-21
+ARG TARGETPLATFORM
 
 RUN apt-get -qq update && \
     apt-get -y install libjsoncpp-dev curl python-is-python3 && \
@@ -27,12 +28,23 @@ RUN curl -O https://www.coin-or.org/download/source/Ipopt/Ipopt-${IPOPT_VERSION}
     tar -xvf Ipopt-${IPOPT_VERSION}.tgz && \
     ./Ipopt-${IPOPT_VERSION}/ThirdParty/Metis/get.Metis
 
-# Build Ipopt (and fix compilation for parallel MPI versions)
 WORKDIR /src/Ipopt-${IPOPT_VERSION}
+
+# Fix compilation for parallel MPI versions
 RUN sed -i "s/#define MPI_COMM_WORLD IPOPT_MPI_COMM_WORLD//g" Ipopt/src/Algorithm/LinearSolvers/IpMumpsSolverInterface.cpp && \
-    sed -i "s/MPI_COMM_WORLD/MPI_COMM_SELF/g" Ipopt/src/Algorithm/LinearSolvers/IpMumpsSolverInterface.cpp && \
-    ./configure --with-blas="-lblas -llapack" --with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps-incdir="${PETSC_DIR}/${PETSC_ARCH}/include  -I/usr/include/x86_64-linux-gnu/mpich/" --with-mumps-lib="${PETSC_DIR}/${PETSC_ARCH}/lib" && \
-    make install
+    sed -i "s/MPI_COMM_WORLD/MPI_COMM_SELF/g" Ipopt/src/Algorithm/LinearSolvers/IpMumpsSolverInterface.cpp
+
+# Build Ipopt for correct architecture
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; \
+    then ./configure --build=aarch64-unknown-linux-gnu --with-blas="-lblas -llapack" --with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps-incdir="${PETSC_DIR}/${PETSC_ARCH}/include  -I/usr/include/aarch64-linux-gnu/mpich/" --with-mumps-lib="${PETSC_DIR}/${PETSC_ARCH}/lib" ; \
+    make install; \
+    elif [ "$TARGETPLATFORM" = "linux/amd64" ]; \
+    then ./configure --build=amd64-unknown-linux-gnu --with-blas="-lblas -llapack" --with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps-incdir="${PETSC_DIR}/${PETSC_ARCH}/include  -I/usr/include/x86_64-linux-gnu/mpich/" --with-mumps-lib="${PETSC_DIR}/${PETSC_ARCH}/lib" ; \
+    make install; \
+    else; \
+    echo "Unknown TARGETPLATFORM: ${TARGETPLATFORM}} , it should be either 'linux/amd64' or 'linux/arm64'"; exit(1); \
+    fi 
+
 
 # Build pyipopt
 ENV LD_LIBRARY_PATH=/usr/local/lib:${LD_LIBRARY_PATH}
@@ -55,8 +67,8 @@ WORKDIR /src/dolfin-adjoint
 RUN cd tests/pyadjoint && python3 -m pytest -xvs .
 RUN cd tests/fenics_adjoint && python3 -m pytest -xvs .
 
-# For debugging add in migration tests
+#For debugging add in migration tests
 # However, as they are slow we don't run them by default
-# RUN cd tests/migration && python3 -m pytest -xvs .
+RUN cd tests/migration && python3 -m pytest -xvs .
 
 WORKDIR /src
