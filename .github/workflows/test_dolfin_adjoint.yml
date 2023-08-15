@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
             apt-get update
-            apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf
+            apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf python-is-python3
             python3 -m pip install -e .[all]
             python3 -m pip install roltrilinos
             python3 -m pip install ROL
