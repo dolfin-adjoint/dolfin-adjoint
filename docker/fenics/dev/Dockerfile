@@ -41,9 +41,8 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; \
     elif [ "$TARGETPLATFORM" = "linux/amd64" ]; \
     then ./configure --build=amd64-unknown-linux-gnu --with-blas="-lblas -llapack" --with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps-incdir="${PETSC_DIR}/${PETSC_ARCH}/include  -I/usr/include/x86_64-linux-gnu/mpich/" --with-mumps-lib="${PETSC_DIR}/${PETSC_ARCH}/lib" ; \
     make install; \
-    else; \
-    echo "Unknown TARGETPLATFORM:" ${TARGETPLATFORM} ", it should be either 'linux/amd64' or 'linux/arm64'"; exit(1); \
-    fi 
+    else echo "Unknown TARGETPLATFORM: ${TARGETPLATFORM}, it should be either 'linux/amd64' or 'linux/arm64'"; \
+    fi
 
 
 # Build pyipopt
