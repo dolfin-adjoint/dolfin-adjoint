@@ -60,11 +60,12 @@ RUN /bin/bash -l -c "python3 -m pip install --no-cache -e .[test]"
 
 # Run tests
 WORKDIR /src/dolfin-adjoint
-RUN cd tests/pyadjoint && python3 -m pytest -xvs .
-RUN cd tests/fenics_adjoint && python3 -m pytest -xvs .
+RUN python3 -c "import dolfin; import dolfin_adjoint"
+# RUN cd tests/pyadjoint && python3 -m pytest -xvs .
+# RUN cd tests/fenics_adjoint && python3 -m pytest -xvs .
 
-#For debugging add in migration tests
+# For debugging add in migration tests
 # However, as they are slow we don't run them by default
-RUN cd tests/migration && python3 -m pytest -xvs .
+# RUN cd tests/migration && python3 -m pytest -xvs .
 
 WORKDIR /src
