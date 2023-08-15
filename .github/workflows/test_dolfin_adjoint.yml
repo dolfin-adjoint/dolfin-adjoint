@@ -1,0 +1,50 @@
+name: Test dolfin-adjoint
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "0 8 * * 1"
+
+env:
+  DEB_PYTHON_INSTALL_LAYOUT: deb_system
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  test-code:
+    runs-on:  ubuntu-22.04
+    container: ghcr.io/scientificcomputing/fenics-gmsh:2023-04-21
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+            apt-get update
+            apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf python-is-python3
+            python3 -m pip install -e .[all]
+            python3 -m pip install roltrilinos
+            python3 -m pip install ROL
+            python3 -m pip install protobuf
+            python3 -m pip install --upgrade numpy
+
+
+      - name: Run tests
+        run: |
+            coverage run --source=fenics_adjoint,pyadjoint -m pytest tests/fenics_adjoint/ tests/pyadjoint/
+            coverage report
+            coverage html
+
+      - name: Run migration tests
+        run: 
+            python3 -m pytest -xvs tests/migration
+
+      - name: Upload coverage report as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: htmlcov
+          if-no-files-found: error
