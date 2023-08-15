@@ -21,7 +21,6 @@ WORKDIR /src/
 
 ARG IPOPT_VERSION=3.12.9
 ARG MOOLA_BRANCH="master"
-ARG DOLFIN_ADJOINT_BRANCH="2023.0.0"
 
 # Pull IPOPT and install Metis
 RUN curl -O https://www.coin-or.org/download/source/Ipopt/Ipopt-${IPOPT_VERSION}.tgz && \
@@ -55,11 +54,9 @@ RUN python3 -m pip install --no-cache cython && \
 RUN /bin/bash -l -c "python3 -m pip install --no-cache git+https://github.com/funsim/moola@${MOOLA_BRANCH}"
 
 # Install dolfin-adjoint
-WORKDIR /src/
-ARG DOLFIN_ADJOINT_REPO="https://github.com/dolfin-adjoint/dolfin-adjoint"
-RUN git clone --single-branch --branch=${DOLFIN_ADJOINT_BRANCH} ${DOLFIN_ADJOINT_REPO}
-RUN /bin/bash -l -c "python3 -m pip install --no-cache -e ./dolfin-adjoint/[test]"
-
+COPY . /src/dolfin-adjoint
+WORKDIR /src/dolfin-adjoint
+RUN /bin/bash -l -c "python3 -m pip install --no-cache -e .[test]"
 
 # Run tests
 WORKDIR /src/dolfin-adjoint
