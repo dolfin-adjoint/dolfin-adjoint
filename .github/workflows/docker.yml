@@ -16,14 +16,14 @@ on:
   workflow_dispatch:
       
 env:
-REGISTRY: ghcr.io
+  REGISTRY: ghcr.io
 
 jobs:
     build-and-push-image:
         runs-on: ubuntu-latest
         permissions:
-        contents: read
-        packages: write
+          contents: read
+          packages: write
 
         steps:
           - name: Checkout repository
