@@ -64,10 +64,10 @@ jobs:
             uses: docker/build-push-action@v3
             if: ${{ github.event_name != 'release' }}
             with:
-                context: ./docker/fenics/dev/
+                context: .
                 push: false
                 load: true
-                file: ./docker/fenics/dev/Dockerfile
+                file: ./docker/fenics/Dockerfile
                 platforms: linux/arm64
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
