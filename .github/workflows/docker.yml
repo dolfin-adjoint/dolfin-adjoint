@@ -55,7 +55,7 @@ jobs:
                 context: .
                 push: false
                 load: true
-                file: ./docker/fenics/Dockerfile
+                file: ./docker/Dockerfile
                 platforms: linux/amd64
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
@@ -67,7 +67,7 @@ jobs:
                 context: .
                 push: false
                 load: true
-                file: ./docker/fenics/Dockerfile
+                file: ./docker/Dockerfile
                 platforms: linux/arm64
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
@@ -78,7 +78,7 @@ jobs:
             with:
                 context: .
                 push: true
-                file: ./docker/fenics/Dockerfile
+                file: ./docker/Dockerfile
                 platforms: linux/amd64,linux/arm64
                 tags: ${{ steps.meta.outputs.tags }}
                 # labels: ${{ steps.meta.outputs.labels }}

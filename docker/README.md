@@ -29,7 +29,7 @@ If you want to share your current working directory into the container use
 the following command:
 
 ```bash
-docker run -ti -v $(pwd):/root/shared ghcr.io/dolfin-adjoint
+docker run -ti -v $(pwd):/root/shared ghcr.io/dolfin-adjoint/dolfin-adjoint
 ```
 
 

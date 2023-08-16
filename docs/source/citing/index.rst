@@ -10,7 +10,7 @@ grateful if you would cite the relevant publications.
 If you use dolfin-adjoint 2018.1 or newer, please cite:
 
 * **Sebastian K. Mitusch, Simon W. Funke, and Jørgen S. Dokken (2019)**.
-  *dolfin-adjoint 2018.1: automated adjoints for FEniCSand Firedrake*,
+  *dolfin-adjoint 2018.1: automated adjoints for FEniCS and Firedrake*,
   Journal of Open Source Software, 4(38), 1292, `doi:10.21105/joss.01292 <https://doi.org/10.21105/joss.01292>`__.
 
 If you use dolfin-adjoint to compute shape sensitivities or perform shape optimization, please also cite:

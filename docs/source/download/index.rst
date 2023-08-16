@@ -29,59 +29,24 @@ commands inside the Docker Quickstart Terminal.
 dolfin-adjoint with FEniCS:
 ---------------------------
 
+You can run `dolfin-adjoint` with the pre-built images at::
+
+    ghcr.io/dolfin-adjoint/dolfin-adjoint
+
 First the FEniCS Docker script::
 
-    curl -s https://get.fenicsproject.org | bash
+    docker run -ti -v $(pwd):/root/shared --name=name_of_container ghcr.io/dolfin-adjoint/dolfin-adjoint
 
-Once both Docker and the FEniCS Docker script have been installed, you can
-easily start a FEniCS session with dolfin-adjoint by running the following
-command::
+which can then be restarted at an later instance with::
 
-    fenicsproject run quay.io/dolfinadjoint/pyadjoint:2019.1.0
+    docker container start -i name_of_container
 
-A Jupyter notebook instance with a user defined name (here myproject) can be started with::
+To update the image call::
 
-    fenicsproject notebook myproject quay.io/dolfinadjoint/pyadjoint
-    fenicsproject start myproject
+    docker pull ghcr.io/dolfin-adjoint/dolfin-adjoint
 
-The FEniCS Docker script can also be used to create persistent sessions::
+and create a new docker container.
 
-    fenicsproject create myproject quay.io/dolfinadjoint/pyadjoint
-    fenicsproject start myproject
-
-To create a session that has access to the current folder from the host::
-
-    docker run -ti -v $(pwd):/home/fenics/shared quay.io/dolfinadjoint/pyadjoint
-
-dolfin-adjoint development version with FEniCS:
------------------------------------------------
-The development version of dolfin-adjoint and FEniCS is available with::
-
-    fenicsproject run quay.io/dolfinadjoint/pyadjoint:latest
-
-
-To update the development container, run::
-
-    fenicsproject pull quay.io/dolfinadjoint/pyadjoint:latest
-
-To see all the options run::
-
-    fenicsproject help
-
-dolfin-adjoint development version with Firedrake:
---------------------------------------------------
-
-dolfin-adjoint is built in to all Firedrake installs. You can
-therefore obtain it with their
-`installation script <https://www.firedrakeproject.org/download.html>`_,
-
-Alternatively, the development version of dolfin-adjoint and Firedrake is available with::
-
-    docker run -it -v `pwd`:/home/firedrake/shared firedrakeproject/firedrake:latest
-
-To update the development container, run::
-
-    docker pull firedrakeproject/firedrake:latest
 
 
 PIP (all platforms)
@@ -91,7 +56,7 @@ Install dolfin-adjoint and its Python dependencies with pip:
 
 .. code-block:: bash
 
-    pip install git+https://github.com/dolfin-adjoint/pyadjoint.git@2019.1.0
+    python3 -m pip install git+https://github.com/dolfin-adjoint/dolfin-adjoint.git@2023.0.0
 
 Test your installation by running:
 
