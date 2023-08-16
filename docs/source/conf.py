@@ -12,8 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-from __future__ import print_function
-import sys, os, datetime
+import sys, os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -78,10 +77,7 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backend.PeriodicBC',
-                'backend.HDF5File',
-                'backend.HDF5File.read',
-                'backend', 'ufl', 'scipy', 'scipy.optimize', 'ufl.classes',
+MOCK_MODULES = ["dolfin", 'ffc','ufl', 'scipy', 'scipy.optimize', 'ufl.classes',
                 'ufl.algorithms', 'ufl.operators',
                 'tensorflow']
 for mod_name in MOCK_MODULES:
@@ -91,8 +87,8 @@ for mod_name in MOCK_MODULES:
         print("Generating mock module %s." % mod_name)
         sys.modules[mod_name] = Mock()
 
-import backend
-backend.__name__ = "dolfin"
+import dolfin
+dolfin.__name__ = "dolfin"
 
 class MockMeta(type):
     pass
@@ -101,8 +97,8 @@ class MockClass(object):
     pass
 
 
-backend.HDF5File = MockClass()
-backend.HDF5File.read = None
+dolfin.HDF5File = MockClass()
+dolfin.HDF5File.read = None
 
 MOCK_META_CLASSES = ["ExpressionMetaClass"]
 

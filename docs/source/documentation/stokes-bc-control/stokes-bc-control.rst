@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. _stokes-bc-control-example:
 
 .. py:currentmodule:: dolfin_adjoint
@@ -63,7 +63,7 @@ First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are imported:
   from dolfin import *
   from dolfin_adjoint import *
   set_log_level(LogLevel.ERROR)
-  
+
 Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
 in the same directory.
 
@@ -72,8 +72,8 @@ in the same directory.
   mesh_xdmf = XDMFFile(MPI.comm_world, "rectangle-less-circle.xdmf")
   mesh = Mesh()
   mesh_xdmf.read(mesh)
-  
-  
+
+
 Then, we define the discrete function spaces. A Taylor-Hood
 finite-element pair is a suitable choice for the Stokes equations.
 The control function is the Dirichlet boundary value on the velocity
@@ -87,16 +87,16 @@ defined over the entire domain).
   Q_h = FiniteElement("CG", mesh.ufl_cell(), 1)
   W = FunctionSpace(mesh, V_h * Q_h)
   V, Q = W.split()
-  
+
   v, q = TestFunctions(W)
   x = TrialFunction(W)
   u, p = split(x)
   s = Function(W, name="State")
   V_collapse = V.collapse()
   g = Function(V_collapse, name="Control")
-  
+
   nu = Constant(1)
-  
+
 Our functional requires the computation of a boundary integral
 over :math:`\partial \Omega_{\textrm{circle}}`.  Therefore, we need
 to create a measure for this integral, which will be accessible as
@@ -109,14 +109,14 @@ define our strong Dirichlet boundary conditions.
   class Circle(SubDomain):
       def inside(self, x, on_boundary):
           return on_boundary and (x[0]-10)**2 + (x[1]-5)**2 < 3**2
-  
+
   facet_marker = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
   facet_marker.set_all(10)
   Circle().mark(facet_marker, 2)
-  
+
   # Define a boundary measure with circle boundary tagged.
   ds = ds(subdomain_data=facet_marker)
-  
+
   # Define boundary conditions
   u_inflow = Expression(("x[1]*(10-x[1])/25", "0"), degree=1)
   noslip = DirichletBC(W.sub(0), (0, 0),
@@ -124,7 +124,7 @@ define our strong Dirichlet boundary conditions.
   inflow = DirichletBC(W.sub(0), u_inflow, "on_boundary && x[0] <= 0.1")
   circle = DirichletBC(W.sub(0), g, facet_marker, 2)
   bcs = [inflow, noslip, circle]
-  
+
 We derive the standard weak formulation of
 the Stokes problem: Find :math:`u, p` such that for all test
 functions :math:`v, q`
@@ -151,7 +151,7 @@ In code, this becomes:
        - inner(q, div(u))*dx
        )
   L = inner(Constant((0, 0)), v)*dx
-  
+
 Next we assemble and solve the system once to record it with
 :py:mod:`dolin-adjoint`.
 
@@ -159,7 +159,7 @@ Next we assemble and solve the system once to record it with
 
   A, b = assemble_system(a, L, bcs)
   solve(A, s.vector(), b)
-  
+
 Next we define the functional of interest :math:`J`, the
 optimisation parameter :math:`g`, and create the reduced
 functional.
@@ -168,11 +168,11 @@ functional.
 
   u, p = split(s)
   alpha = Constant(10)
-  
+
   J = assemble(1./2*inner(grad(u), grad(u))*dx + alpha/2*inner(g, g)*ds(2))
   m = Control(g)
   Jhat = ReducedFunctional(J, m)
-  
+
 Now, everything is set up to run the optimisation and to plot the
 results. By default, :py:func:`minimize` uses the L-BFGS-B
 algorithm.
@@ -181,13 +181,13 @@ algorithm.
 
   g_opt = minimize(Jhat, options={"disp": True})
   plot(g_opt, title="Optimised boundary")
-  
+
   g.assign(g_opt)
   A, b = assemble_system(a, L, bcs)
   solve(A, s.vector(), b)
   plot(s.sub(0), title="Velocity")
   plot(s.sub(1), title="Pressure")
-  
+
 Results
 *******
 

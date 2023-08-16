@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. py:currentmodule:: dolfin_adjoint
 
 Learning Reaction Rates of an Advection-Diffusion-Reaction System
@@ -104,43 +104,43 @@ and computes the loss for each time step, if a loss function (`loss_func`) is pr
   from fenics import *
   from fenics_adjoint import *
   set_log_level(LogLevel.CRITICAL)
-  
+
   def solve_reaction_system(mesh, T, num_steps, reaction_func, loss_func=lambda n,x: 0):
-  
+
       dt = T / num_steps # time step size
       eps = 0.01         # diffusion coefficient
-  
+
       # Define function space for velocity
       W = VectorFunctionSpace(mesh, 'CG', 2)
-  
+
       # Define function space for system of concentrations
       P1 = FiniteElement('CG', triangle, 1)
       element = MixedElement([P1, P1, P1])
       V = FunctionSpace(mesh, element)
-  
+
       # Define test functions
       v_1, v_2, v_3 = TestFunctions(V)
-  
+
       # Define functions for velocity and concentrations
       w = Function(W)
       u = Function(V)
       u_n = Function(V)
-  
+
       # Split system functions to access components
       u_1, u_2, u_3 = split(u)
       u_n1, u_n2, u_n3 = split(u_n)
-  
+
       # Define source terms
       f_1 = Expression('pow(x[0]-0.1,2)+pow(x[1]-0.1,2)<0.05*0.05 ? 10 : 0',
                        degree=1)
       f_2 = Expression('pow(x[0]-0.1,2)+pow(x[1]-0.3,2)<0.05*0.05 ? 10 : 0',
                        degree=1)
       f_3 = Constant(0)
-  
+
       # Define expressions used in variational forms
       k = Constant(dt)
       eps = Constant(eps)
-  
+
       # Define variational problem
       F = (((u_1 - u_n1) / k)*v_1*dx + dot(w, grad(u_1))*v_1*dx 
         + eps*dot(grad(u_1), grad(v_1))*dx + reaction_func(u_1, u_2)*v_1*dx  
@@ -149,39 +149,39 @@ and computes the loss for each time step, if a loss function (`loss_func`) is pr
         + ((u_3 - u_n3) / k)*v_3*dx + dot(w, grad(u_3))*v_3*dx 
         + eps*dot(grad(u_3), grad(v_3))*dx - reaction_func(u_1, u_2)*v_3*dx 
         - f_1*v_1*dx - f_2*v_2*dx - f_3*v_3*dx)
-  
+
       inflow   = 'near(x[0], 0)'
       bc_inflow = DirichletBC(V, Constant((0,0,0)), inflow)
-  
+
       # Create time series for reading velocity data
       timeseries_w = TimeSeries('navier_stokes_cylinder/velocity_series')
       timeseries_w.retrieve(w.vector(), 2.0)
-  
+
       # Time-stepping
       t = 0
       results = []
       loss = 0.0
       for n in range(num_steps):
-  
+
           # Update current time
           t += dt
-  
+
           # Solve variational problem for time step
           solve(F == 0, u, bcs=bc_inflow)
-  
+
           # Save solution to file (VTK)
           _u_1, _u_2, _u_3 = u.split()
           _u_1.rename("u1","u1")
           _u_2.rename("u2","u3")
           _u_3.rename("u3","u3")
-  
+
           # Update previous solution
           u_n.assign(u)
           loss += loss_func(n, u.split())
           results.append(u.copy())
-  
+
       return loss, results
-  
+
 For the NN part, we rely on the 
 `NN implementation <https://github.com/sebastkm/hybrid-fem-nn/blob/master/neural_network.py>`_
 by :cite:`mitusch2021hybrid`.
@@ -195,22 +195,22 @@ truth training data with the reaction rate :math:`R(u_1, u_2)= K u_1 u_2`:
   from neural_network import ANN
   import numpy as np
   import matplotlib.pyplot as plt
-  
+
   np.random.seed(99)
-  
+
   T = 2.0
   num_steps = 20
   K = Constant(10) 
-  
+
   mesh = Mesh('navier_stokes_cylinder/cylinder.xml.gz')
-  
+
   #ground truth reaction term
   def R_true(u1, u2):
           return K*u1*u2
-  
+
   #create ground_truth data
   _, ground_truth = solve_reaction_system(mesh, T, num_steps, R_true)
-  
+
 Next, we define a neural network with one hidden layer with 10 neurons,
 two scalar input values and a single scalar output:
 
@@ -219,10 +219,10 @@ two scalar input values and a single scalar output:
   layers = [2, 10, 1]
   bias = [True , True]
   net = ANN(layers, bias=bias, mesh=mesh)
-  
+
   def R_net(u1, u2):
       return net([u1, u2])
-  
+
 Now, we specify the loss function and compute the loss with the initial weights of the NN:
 
 ::
@@ -230,17 +230,17 @@ Now, we specify the loss function and compute the loss with the initial weights 
   #define L2 loss function for each timestep i.
   #As the concentrations of u_3 are much smaller, we put more weight on it.
   loss_weights = [1,1, 200]
-  
+
   def loss_func(n, data):
       loss = 0.0
       for u in [0,1,2]:
           loss += loss_weights[u]*assemble((data[u] - ground_truth[n][u])**2*dx)
       return loss
-  
+
   # solve reaction system and compute loss with initial weights
   loss, learned_data = solve_reaction_system(mesh,T, num_steps, R_net,
                                              loss_func=loss_func)
-  
+
 Then, we start the training process using the scipy L-BFGS-optimizer for 100 iterations.
 Note that the training process can take a significant amout of time,
 since at least one solve of the forward and adjoint equation is required
@@ -250,12 +250,12 @@ per training iteration.
 
   #define reduced functional
   J_hat = ReducedFunctional(loss, net.weights_ctrls())
-  
+
   #Use scipy L - BFGS optimiser
   opt_weights = minimize(J_hat, method ="L-BFGS-B", tol = 1e-6,
                          options = {'disp': True, "maxiter":100})
   net.set_weights(opt_weights)
-  
+
 For evaluation, we compute the concentrations with the learned reaction rates
 at final time and observe a good agreement:
 
@@ -264,11 +264,11 @@ at final time and observe a good agreement:
   # compute final learned state
   final_loss, learned_data = solve_reaction_system(mesh,T, num_steps, R_net,
                                                    loss_func=loss_func)
-  
+
   # plot concentrations at final time
   i = num_steps - 1
   fig, axs = plt.subplots(nrows=3, ncols=2, figsize=(12,6))
-  
+
   for u in [0,1,2]:
       u_max = ground_truth[i].split(deepcopy=True)[u].vector()[:].max()
       plt.axes(axs[u,0])
@@ -278,9 +278,9 @@ at final time and observe a good agreement:
       plt.title(f"ground truth $u_{u+1}$")
       im = plot(ground_truth[i][u], vmin=0, vmax=u_max)
       cbar = fig.colorbar(im, ax=axs[u,:], shrink=0.95)
-  
+
   plt.savefig("concentrations.png")
-  
+
 .. figure:: concentrations.png
   :scale: 70
   :align: center
@@ -297,12 +297,12 @@ Finally, we are also interested in the learned reaction rates:
   learned_rates = np.zeros(shape=(n,n))
   exact_rates = np.zeros(shape=(n,n))
   concentrations = np.linspace(0,c_max, n)
-  
+
   for i,c1 in enumerate(concentrations):
       for j,c2 in enumerate(concentrations):
           learned_rates[i,j] = net([Constant(c1), Constant(c2)])([0.0,0.0])
           exact_rates[i,j] = c1*c2*K.values()[0]
-  
+
   vmax = max([learned_rates.max()])#, exact_rates.max()])
   fig, axs = plt.subplots(1,2, figsize = (10,5))
   plt.axes(axs[0])
@@ -312,7 +312,7 @@ Finally, we are also interested in the learned reaction rates:
   plt.yticks( np.linspace(0,n, n_ticks), ticks)
   plt.xlabel("$u_1$")
   plt.ylabel("$u_2$")
-  
+
   plt.axes(axs[1])
   plt.title("true reaction rates")
   plt.imshow(exact_rates, origin="lower")
@@ -320,12 +320,12 @@ Finally, we are also interested in the learned reaction rates:
   plt.yticks( np.linspace(0,n, n_ticks), ticks)
   plt.xlabel("$u_1$")
   plt.ylabel("$u_2$")
-  
+
   plt.tight_layout()
   cbar = fig.colorbar(im, ax=axs, shrink=0.95)
-  
+
   plt.savefig("learned_reaction_rates.png")
-  
+
 .. figure:: learned_reaction_rates.png
   :scale: 70
   :align: center

@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. _poisson-topology-example:
 
 .. py:currentmodule:: dolfin_adjoint
@@ -68,9 +68,9 @@ imported:
 ::
 
   from fenics import *
-  
+
   from fenics_adjoint import *
-  
+
 Next we import the Python interface to IPOPT. If IPOPT is
 unavailable on your system, we strongly :doc:`suggest you install it
 <../../download/index>`; IPOPT is a well-established open-source
@@ -86,10 +86,10 @@ optimisation algorithm.
     When compiling IPOPT, make sure to link against HSL, as it \
     is a necessity for practical problems.""")
       raise
-  
+
   # turn off redundant output in parallel
   parameters["std_out_all_processes"] = False
-  
+
 Next we define some constants, and the Solid Isotropic Material with
 Penalisation (SIMP) rule.
 
@@ -101,14 +101,14 @@ Penalisation (SIMP) rule.
   # solution to attain either 0 or 1
   eps = Constant(1.0e-3)  # epsilon used in the solid isotropic material
   alpha = Constant(1.0e-8)  # regularisation coefficient in functional
-  
-  
+
+
   def k(a):
       """Solid isotropic material with penalisation (SIMP) conductivity
     rule, equation (11)."""
       return eps + (1 - eps) * a ** p
-  
-  
+
+
 Next we define the mesh (a unit square) and the function spaces to be
 used for the control :math:`a` and forward solution :math:`T`.
 
@@ -118,25 +118,25 @@ used for the control :math:`a` and forward solution :math:`T`.
   mesh = UnitSquareMesh(n, n)
   A = FunctionSpace(mesh, "CG", 1)  # function space for control
   P = FunctionSpace(mesh, "CG", 1)  # function space for solution
-  
-  
+
+
 Next we define the forward boundary condition and source term.
 
 ::
 
   class WestNorth(SubDomain):
       """The top and left boundary of the unitsquare, used to enforce the Dirichlet boundary condition."""
-  
+
       def inside(self, x, on_boundary):
           return (x[0] == 0.0 or x[1] == 1.0) and on_boundary
-  
-  
+
+
   # the Dirichlet BC; the Neumann BC will be implemented implicitly by
   # dropping the surface integral after integration by parts
   bc = [DirichletBC(P, 0.0, WestNorth())]
   f = interpolate(Constant(1.0e-2), P)  # the volume source term for the PDE
-  
-  
+
+
 Next we define a function that given a control :math:`a` solves the
 forward PDE for the temperature :math:`T`. (The advantage of
 formulating it in this manner is that it makes it easy to conduct
@@ -150,14 +150,14 @@ formulating it in this manner is that it makes it easy to conduct
       """Solve the forward problem for a given material distribution a(x)."""
       T = Function(P, name="Temperature")
       v = TestFunction(P)
-  
+
       F = inner(grad(v), k(a) * grad(T)) * dx - f * v * dx
       solve(F == 0, T, bc, solver_parameters={"newton_solver": {"absolute_tolerance": 1.0e-7,
                                                                 "maximum_iterations": 20}})
-  
+
       return T
-  
-  
+
+
 Now we define the ``__main__`` section. We define the initial guess
 for the control and use it to solve the forward PDE. In order to
 ensure feasibility of the initial control guess, we interpolate the
@@ -169,7 +169,7 @@ bound constraint are satisfied.
   if __name__ == "__main__":
       a = interpolate(V, A)  # initial guess.
       T = forward(a)  # solve the forward problem once.
-  
+
 With the forward problem solved once, :py:mod:`dolfin_adjoint` has
 built a *tape* of the forward model; it will use this tape to drive
 the optimisation, by repeatedly solving the forward model and the
@@ -192,12 +192,12 @@ executed on every functional derivative calculation
 
       controls = File("output/control_iterations.pvd")
       a_viz = Function(A, name="ControlVisualisation")
-  
-  
+
+
       def eval_cb(j, a):
           a_viz.assign(a)
           controls << a_viz
-  
+
 Now we define the functional, compliance with a weak regularisation
 term on the gradient of the material
 
@@ -206,7 +206,7 @@ term on the gradient of the material
       J = assemble(f * T * dx + alpha * inner(grad(a), grad(a)) * dx)
       m = Control(a)
       Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
-  
+
 This :py:class:`ReducedFunctional` object solves the forward PDE using
 dolfin-adjoint's tape each time the functional is to be evaluated, and
 derives and solves the adjoint equation each time the functional
@@ -221,7 +221,7 @@ are easy:
 
       lb = 0.0
       ub = 1.0
-  
+
 The volume constraint involves a little bit more work. Following
 :cite:`nocedal2006`, inequality constraints are represented as
 (possibly vector) functions :math:`g` defined such that :math:`g(a)
@@ -238,10 +238,10 @@ the constraint.
 
       class VolumeConstraint(InequalityConstraint):
           """A class that enforces the volume constraint g(a) = V - a*dx >= 0."""
-  
+
           def __init__(self, V):
               self.V = float(V)
-  
+
 The derivative of the constraint g(x) is constant (it is the
 diagonal of the lumped mass matrix for the control function space),
 so let's assemble it here once.  This is also useful in rapidly
@@ -251,11 +251,11 @@ calculating the integral each time without re-assembling.
 
               self.smass = assemble(TestFunction(A) * Constant(1) * dx)
               self.tmpvec = Function(A)
-  
+
           def function(self, m):
               from pyadjoint.reduced_functional_numpy import set_local
               set_local(self.tmpvec, m)
-  
+
 Compute the integral of the control over the domain
 
 ::
@@ -264,18 +264,18 @@ Compute the integral of the control over the domain
               if MPI.rank(MPI.comm_world) == 0:
                   print("Current control integral: ", integral)
               return [self.V - integral]
-  
+
           def jacobian(self, m):
               return [-self.smass]
-  
+
           def output_workspace(self):
               return [0.0]
-  
+
           def length(self):
               """Return the number of components in the constraint vector (here, one)."""
               return 1
-  
-  
+
+
 Now that all the ingredients are in place, we can perform the
 optimisation.  The :py:class:`MinimizationProblem` class
 represents the optimisation problem to be solved. We instantiate
@@ -284,15 +284,15 @@ this and pass it to :py:mod:`ipopt` to solve:
 ::
 
       problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V))
-  
+
       parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
       solver = IPOPTSolver(problem, parameters=parameters)
       a_opt = solver.solve()
-  
+
       File("output/final_solution.pvd") << a_opt
       xdmf_filename = XDMFFile(MPI.comm_world, "output/final_solution.xdmf")
       xdmf_filename.write(a_opt)
-  
+
 The example code can be found in ``examples/poisson-topology/`` in the
 ``dolfin-adjoint`` source tree, and executed as follows:
 

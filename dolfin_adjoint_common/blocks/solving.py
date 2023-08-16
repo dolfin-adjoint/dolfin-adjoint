@@ -1,4 +1,5 @@
 import numpy
+import dolfin
 import ufl_legacy as ufl
 from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 
@@ -49,10 +50,7 @@ class GenericSolveBlock(Block):
         for bc in self.bcs:
             self.add_dependency(bc, no_duplicates=True)
 
-        if self.backend.__name__ != "firedrake":
-            mesh = self.lhs.ufl_domain().ufl_cargo()
-        else:
-            mesh = self.lhs.ufl_domain()
+        mesh = self.lhs.ufl_domain().ufl_cargo()
         self.add_dependency(mesh)
         self._init_solver_parameters(args, kwargs)
 
@@ -72,7 +70,7 @@ class GenericSolveBlock(Block):
         # and gathering lhs and rhs in one single form.
         if self.linear:
             tmp_u = self.compat.create_function(self.function_space)
-            F_form = self.backend.action(self.lhs, tmp_u) - self.rhs
+            F_form = dolfin.action(self.lhs, tmp_u) - self.rhs
         else:
             tmp_u = self.func
             F_form = self.lhs
@@ -84,13 +82,13 @@ class GenericSolveBlock(Block):
     def _homogenize_bcs(self):
         bcs = []
         for bc in self.bcs:
-            if isinstance(bc, self.backend.DirichletBC):
+            if isinstance(bc, dolfin.DirichletBC):
                 bc = self.compat.create_bc(bc, homogenize=True)
             bcs.append(bc)
         return bcs
 
     def _create_initial_guess(self):
-        return self.backend.Function(self.function_space)
+        return dolfin.Function(self.function_space)
 
     def _recover_bcs(self):
         bcs = []
@@ -98,7 +96,7 @@ class GenericSolveBlock(Block):
             c = block_variable.output
             c_rep = block_variable.saved_output
 
-            if isinstance(c, self.backend.DirichletBC):
+            if isinstance(c, dolfin.DirichletBC):
                 bcs.append(c_rep)
         return bcs
 
@@ -117,7 +115,7 @@ class GenericSolveBlock(Block):
         """
         replace_map = self._replace_map(form)
         if func is not None and self.func in replace_map:
-            self.backend.Function.assign(func, replace_map[self.func])
+            dolfin.Function.assign(func, replace_map[self.func])
             replace_map[self.func] = func
         return ufl.replace(form, replace_map)
 
@@ -125,7 +123,7 @@ class GenericSolveBlock(Block):
         # Check if DirichletBC derivative is relevant
         bdy = False
         for _, dep in relevant_dependencies:
-            if isinstance(dep.output, self.backend.DirichletBC):
+            if isinstance(dep.output, dolfin.DirichletBC):
                 bdy = True
                 break
         return bdy
@@ -138,10 +136,10 @@ class GenericSolveBlock(Block):
 
         F_form = self._create_F_form()
 
-        dFdu = self.backend.derivative(F_form,
-                                       fwd_block_variable.saved_output,
-                                       self.backend.TrialFunction(u.function_space()))
-        dFdu_form = self.backend.adjoint(dFdu)
+        dFdu = dolfin.derivative(F_form,
+                                 fwd_block_variable.saved_output,
+                                 dolfin.TrialFunction(u.function_space()))
+        dFdu_form = dolfin.adjoint(dFdu)
         dJdu = dJdu.copy()
 
         compute_bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
@@ -176,7 +174,7 @@ class GenericSolveBlock(Block):
         if compute_bdy:
             adj_sol_bdy = self.compat.function_from_vector(self.function_space,
                                                            dJdu_copy - self.compat.assemble_adjoint_value(
-                                                               self.backend.action(dFdu_adj_form, adj_sol)))
+                                                               dolfin.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -192,28 +190,28 @@ class GenericSolveBlock(Block):
 
         if self.compat.isconstant(c):
             mesh = self.compat.extract_mesh_from_form(F_form)
-            trial_function = self.backend.TrialFunction(c._ad_function_space(mesh))
-        elif isinstance(c, self.backend.Function):
-            trial_function = self.backend.TrialFunction(c.function_space())
+            trial_function = dolfin.TrialFunction(c._ad_function_space(mesh))
+        elif isinstance(c, dolfin.Function):
+            trial_function = dolfin.TrialFunction(c.function_space())
         elif isinstance(c, self.compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             c_fs = c._ad_function_space(mesh)
-            trial_function = self.backend.TrialFunction(c_fs)
-        elif isinstance(c, self.backend.DirichletBC):
+            trial_function = dolfin.TrialFunction(c_fs)
+        elif isinstance(c, dolfin.DirichletBC):
             tmp_bc = self.compat.create_bc(c, value=self.compat.extract_subfunction(adj_sol_bdy, c.function_space()))
             return [tmp_bc]
         elif isinstance(c, self.compat.MeshType):
             # Using CoordianteDerivative requires us to do action before
             # differentiating, might change in the future.
-            F_form_tmp = self.backend.action(F_form, adj_sol)
-            X = self.backend.SpatialCoordinate(c_rep)
-            dFdm = self.backend.derivative(-F_form_tmp, X, self.backend.TestFunction(c._ad_function_space()))
+            F_form_tmp = dolfin.action(F_form, adj_sol)
+            X = dolfin.SpatialCoordinate(c_rep)
+            dFdm = dolfin.derivative(-F_form_tmp, X, dolfin.TestFunction(c._ad_function_space()))
 
             dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
-        dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
-        dFdm = self.backend.adjoint(dFdm)
+        dFdm = -dolfin.derivative(F_form, c_rep, trial_function)
+        dFdm = dolfin.adjoint(dFdm)
         dFdm = dFdm * adj_sol
         dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
         if isinstance(c, self.compat.ExpressionType):
@@ -228,9 +226,9 @@ class GenericSolveBlock(Block):
         F_form = self._create_F_form()
 
         # Obtain dFdu.
-        dFdu = self.backend.derivative(F_form,
-                                       fwd_block_variable.saved_output,
-                                       self.backend.TrialFunction(u.function_space()))
+        dFdu = dolfin.derivative(F_form,
+                                 fwd_block_variable.saved_output,
+                                 dolfin.TrialFunction(u.function_space()))
 
         return {
             "form": F_form,
@@ -249,14 +247,14 @@ class GenericSolveBlock(Block):
             c = block_variable.output
             c_rep = block_variable.saved_output
 
-            if isinstance(c, self.backend.DirichletBC):
+            if isinstance(c, dolfin.DirichletBC):
                 if tlm_value is None:
                     bcs.append(self.compat.create_bc(c, homogenize=True))
                 else:
                     bcs.append(tlm_value)
                 continue
             elif isinstance(c, self.compat.MeshType):
-                X = self.backend.SpatialCoordinate(c)
+                X = dolfin.SpatialCoordinate(c)
                 c_rep = X
 
             if tlm_value is None:
@@ -265,15 +263,15 @@ class GenericSolveBlock(Block):
             if c == self.func and not self.linear:
                 continue
 
-            dFdm += self.backend.derivative(-F_form, c_rep, tlm_value)
+            dFdm += dolfin.derivative(-F_form, c_rep, tlm_value)
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
-            dFdm = self.backend.inner(self.backend.Constant(numpy.zeros(v.ufl_shape)), v) * self.backend.dx
+            dFdm = dolfin.inner(dolfin.Constant(numpy.zeros(v.ufl_shape)), v) * dolfin.dx
 
         dFdm = ufl.algorithms.expand_derivatives(dFdm)
         dFdm = self.compat.assemble_adjoint_value(dFdm)
-        dudm = self.backend.Function(V)
+        dudm = dolfin.Function(V)
         return self._assemble_and_solve_tlm_eq(
             self.compat.assemble_adjoint_value(dFdu, bcs=bcs, **self.assemble_kwargs), dFdm, dudm, bcs)
 
@@ -284,7 +282,7 @@ class GenericSolveBlock(Block):
         # Start piecing together the rhs of the soa equation
         b = hessian_input.copy()
         if len(d2Fdu2.integrals()) > 0:
-            b_form = self.backend.action(self.backend.adjoint(d2Fdu2), adj_sol)
+            b_form = dolfin.action(dolfin.adjoint(d2Fdu2), adj_sol)
         else:
             b_form = d2Fdu2
 
@@ -297,15 +295,15 @@ class GenericSolveBlock(Block):
                 continue
 
             if isinstance(c, self.compat.MeshType):
-                X = self.backend.SpatialCoordinate(c)
-                dFdu_adj = self.backend.action(self.backend.adjoint(dFdu_form), adj_sol)
+                X = dolfin.SpatialCoordinate(c)
+                dFdu_adj = dolfin.action(dolfin.adjoint(dFdu_form), adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(
-                    self.backend.derivative(dFdu_adj, X, tlm_input))
+                    dolfin.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
                     b_form += d2Fdudm
-            elif not isinstance(c, self.backend.DirichletBC):
-                dFdu_adj = self.backend.action(self.backend.adjoint(dFdu_form), adj_sol)
-                b_form += self.backend.derivative(dFdu_adj, c_rep, tlm_input)
+            elif not isinstance(c, dolfin.DirichletBC):
+                dFdu_adj = dolfin.action(dolfin.adjoint(dFdu_form), adj_sol)
+                b_form += dolfin.derivative(dFdu_adj, c_rep, tlm_input)
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
@@ -315,7 +313,7 @@ class GenericSolveBlock(Block):
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2, compute_bdy):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
-        dFdu_form = self.backend.adjoint(dFdu_form)
+        dFdu_form = dolfin.adjoint(dFdu_form)
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b, compute_bdy)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
@@ -338,9 +336,9 @@ class GenericSolveBlock(Block):
         F_form = self._create_F_form()
 
         # Using the equation Form we derive dF/du, d^2F/du^2 * du/dm * direction.
-        dFdu_form = self.backend.derivative(F_form, fwd_block_variable.saved_output)
+        dFdu_form = dolfin.derivative(F_form, fwd_block_variable.saved_output)
         d2Fdu2 = ufl.algorithms.expand_derivatives(
-            self.backend.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
+            dolfin.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
 
         adj_sol = self.adj_sol
         if adj_sol is None:
@@ -372,7 +370,7 @@ class GenericSolveBlock(Block):
 
         # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
         # so we only have the term dF(u,m)/dm * adj_sol2
-        if isinstance(c, self.backend.DirichletBC):
+        if isinstance(c, dolfin.DirichletBC):
             tmp_bc = self.compat.create_bc(c, value=self.compat.extract_subfunction(adj_sol2_bdy, c.function_space()))
             return [tmp_bc]
 
@@ -383,25 +381,25 @@ class GenericSolveBlock(Block):
             mesh = F_form.ufl_domain().ufl_cargo()
             W = c._ad_function_space(mesh)
         elif isinstance(c, self.compat.MeshType):
-            X = self.backend.SpatialCoordinate(c)
+            X = dolfin.SpatialCoordinate(c)
             W = c._ad_function_space()
         else:
             W = c.function_space()
 
-        dc = self.backend.TestFunction(W)
-        form_adj = self.backend.action(F_form, adj_sol)
-        form_adj2 = self.backend.action(F_form, adj_sol2)
+        dc = dolfin.TestFunction(W)
+        form_adj = dolfin.action(F_form, adj_sol)
+        form_adj2 = dolfin.action(F_form, adj_sol2)
         if isinstance(c, self.compat.MeshType):
-            dFdm_adj = self.backend.derivative(form_adj, X, dc)
-            dFdm_adj2 = self.backend.derivative(form_adj2, X, dc)
+            dFdm_adj = dolfin.derivative(form_adj, X, dc)
+            dFdm_adj2 = dolfin.derivative(form_adj2, X, dc)
         else:
-            dFdm_adj = self.backend.derivative(form_adj, c_rep, dc)
-            dFdm_adj2 = self.backend.derivative(form_adj2, c_rep, dc)
+            dFdm_adj = dolfin.derivative(form_adj, c_rep, dc)
+            dFdm_adj2 = dolfin.derivative(form_adj2, c_rep, dc)
 
         # TODO: Old comment claims this might break on split. Confirm if true or not.
         d2Fdudm = ufl.algorithms.expand_derivatives(
-            self.backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
-                                    tlm_output))
+            dolfin.derivative(dFdm_adj, fwd_block_variable.saved_output,
+                              tlm_output))
 
         d2Fdm2 = 0
         # We need to add terms from every other dependency
@@ -410,7 +408,7 @@ class GenericSolveBlock(Block):
             c2 = bv.output
             c2_rep = bv.saved_output
 
-            if isinstance(c2, self.backend.DirichletBC):
+            if isinstance(c2, dolfin.DirichletBC):
                 continue
 
             tlm_input = bv.tlm_value
@@ -422,10 +420,10 @@ class GenericSolveBlock(Block):
 
             # TODO: If tlm_input is a Sum, this crashes in some instances?
             if isinstance(c2_rep, self.compat.MeshType):
-                X = self.backend.SpatialCoordinate(c2_rep)
-                d2Fdm2 += ufl.algorithms.expand_derivatives(self.backend.derivative(dFdm_adj, X, tlm_input))
+                X = dolfin.SpatialCoordinate(c2_rep)
+                d2Fdm2 += ufl.algorithms.expand_derivatives(dolfin.derivative(dFdm_adj, X, tlm_input))
             else:
-                d2Fdm2 += ufl.algorithms.expand_derivatives(self.backend.derivative(dFdm_adj, c2_rep, tlm_input))
+                d2Fdm2 += ufl.algorithms.expand_derivatives(dolfin.derivative(dFdm_adj, c2_rep, tlm_input))
 
         hessian_form = ufl.algorithms.expand_derivatives(d2Fdm2 + dFdm_adj2 + d2Fdudm)
         hessian_output = 0
@@ -452,13 +450,13 @@ class GenericSolveBlock(Block):
         return lhs, rhs, func, bcs
 
     def _forward_solve(self, lhs, rhs, func, bcs):
-        self.backend.solve(lhs == rhs, func, bcs, *self.forward_args, **self.forward_kwargs)
+        dolfin.solve(lhs == rhs, func, bcs, *self.forward_args, **self.forward_kwargs)
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
         for bc in bcs:
             bc.apply(rhs)
-        self.backend.solve(lhs, func.vector(), rhs, **kwargs)
+        dolfin.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):

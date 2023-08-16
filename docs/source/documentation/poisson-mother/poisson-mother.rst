@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. py:currentmodule:: dolfin_adjoint
 
 Optimal control of the Poisson equation
@@ -58,9 +58,9 @@ We start our implementation by importing the :py:mod:`dolfin` and
 ::
 
   from dolfin import *
-  
+
   from dolfin_adjoint import *
-  
+
 Next we import the Python interface to Moola. Moola is a collection
 of optimisation solvers specifically designed for PDE-constrained
 optimisation problems. If Moola is not yet available on your system,
@@ -69,7 +69,7 @@ it is :doc:`easy to install <../../download/index>`.
 ::
 
   import moola
-  
+
 Next we create a regular mesh of the unit square. Some optimisation
 algorithms suffer from bad performance when the mesh is non-uniform
 (i.e. when the mesh is partially refined). To demonstrate that Moola
@@ -80,12 +80,12 @@ domain:
 
   n = 64
   mesh = UnitSquareMesh(n, n)
-  
+
   cf = MeshFunction("bool", mesh, mesh.geometric_dimension())
   subdomain = CompiledSubDomain('std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
   subdomain.mark(cf, True)
   mesh = refine(mesh, cf)
-  
+
 The resulting mesh looks like this:
 
 .. image:: mesh.png
@@ -99,11 +99,11 @@ the temperature and the control function.
 
   V = FunctionSpace(mesh, "CG", 1)
   W = FunctionSpace(mesh, "DG", 0)
-  
+
   f = interpolate(Expression("x[0]+x[1]", name='Control', degree=1), W)
   u = Function(V, name='State')
   v = TestFunction(V)
-  
+
 The optimisation algorithm will use the value of the control
 function :math:`f` as an initial guess for the optimisation.  A
 zero-initial guess for the control appears to be too simple: for
@@ -119,7 +119,7 @@ it.
   F = (inner(grad(u), grad(v)) - f * v) * dx
   bc = DirichletBC(V, 0.0, "on_boundary")
   solve(F == 0, u, bc)
-  
+
 By doing so, `dolfin-adjoint` automatically records the details of
 each PDE solve (also called a tape). This tape will be used by the
 optimisation algorithm to repeatedly solve the forward and adjoint
@@ -137,11 +137,11 @@ variable.
   w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3)
   d = 1 / (2 * pi ** 2)
   d = Expression("d*w", d=d, w=w, degree=3)
-  
+
   alpha = Constant(1e-6)
   J = assemble((0.5 * inner(u - d, u - d)) * dx + alpha / 2 * f ** 2 * dx)
   control = Control(f)
-  
+
 The next step is to formulate the so-called reduced optimisation
 problem. The idea is that the solution :math:`u` can be considered
 as a function of :math:`f`: given a value for :math:`f`, we can
@@ -164,7 +164,7 @@ equation each time the functional gradient is to be evaluated.
 ::
 
   rf = ReducedFunctional(J, control)
-  
+
 Now that all the ingredients are in place, we can perform the
 optimisation.
 
@@ -181,7 +181,7 @@ wrap the control function into a Moola object, and create a
                                                      'maxiter': 20,
                                                      'display': 3,
                                                      'ncg_hesstol': 0})
-  
+
 Alternatively an L-BFGS solver could initialised by:
 
 .. code-block:: python
@@ -199,13 +199,13 @@ control and plot it:
 
   sol = solver.solve()
   f_opt = sol['control'].data
-  
+
   plot(f_opt, title="f_opt")
-  
+
   # Define the expressions of the analytical solution
   f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)
   u_analytic = Expression("1/(2*pow(pi, 2))*f", f=f_analytic, degree=3)
-  
+
 We can then compute the errors between numerical and analytical
 solutions.
 
@@ -218,7 +218,7 @@ solutions.
   print("h(min):           %e." % mesh.hmin())
   print("Error in state:   %e." % state_error)
   print("Error in control: %e." % control_error)
-  
+
 The example code can be found in ``examples/poisson-mother`` in the
 ``dolfin-adjoint`` source tree, and executed as follows:
 
@@ -305,4 +305,3 @@ the control can be observed.
 .. bibliography:: /documentation/poisson-mother/poisson-mother.bib
    :cited:
    :labelprefix: 1E-
-   :keyprefix: 1E-

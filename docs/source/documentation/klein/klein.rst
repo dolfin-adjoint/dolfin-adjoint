@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. _klein:
 
 .. py:currentmodule:: dolfin_adjoint
@@ -80,14 +80,14 @@ We start the implementation by importing the :py:mod:`dolfin` and
 
   from dolfin import *
   from matplotlib.pyplot import show
-  
+
   from dolfin_adjoint import *
-  
+
   # Next we load a triangulation of the Klein bottle as a mesh file.
   mesh = Mesh()
   infile = XDMFFile(MPI.comm_world, 'klein.xdmf')
   infile.read(mesh)
-  
+
 FEniCS natively supports solving partial differential equations on manifolds
 :cite:`rognes2013`, so nothing else needs to be done here.  The code for
 generating this mesh, can be found  in ``examples/klein/make_mesh.py`` in the
@@ -103,22 +103,22 @@ diffusivity coefficient.
 
   # Function space for the PDE solution
   V = FunctionSpace(mesh, "CG", 1)
-  
+
   # Solution at the current time level
   u = Function(V)
-  
+
   # Solution at the previous time level
   u_old = Function(V)
-  
+
   # Test function
   v = TestFunction(V)
-  
+
   # Initial condition
   g = interpolate(Expression("sin(x[2])*cos(x[1])", degree=2), V)
-  
+
   # Thermal diffusivity
   nu = 1.0
-  
+
 Now we discretise the problem in time and implement the variational
 formulation of the problem.  By multiplying the heat equation with a
 testfunction :math:`v \in V`, integrating the Laplace term by parts, and
@@ -139,31 +139,31 @@ or in code:
   T = 1.
   t = 0.0
   step = 0.1
-  
+
   # Define the variational formulation of the problem
   F = u * v * dx - u_old * v * dx + step * nu * inner(grad(v), grad(u)) * dx
-  
+
 The next step is to solve the time-dependent forward problem.
 
 ::
 
   fwd_timer = Timer("Forward run")
   fwd_time = 0
-  
+
   u_pvd = File("output/u.pvd")
-  
+
   # Execute the time loop
   u_old.assign(g, annotate=True)
   while t <= T:
       t += step
-  
+
       fwd_timer.start()
       solve(F == 0, u)
       u_old.assign(u)
       fwd_time += fwd_timer.stop()
-  
+
       u_pvd << u
-  
+
 At the beginning of the time loop, the initial condition :math:`g` is copied
 into :math:`u_{\textrm{old}}`. Note the annotate=True argument, which tells
 dolfin-adjoint that this assignment is part of the forward model computation.
@@ -177,11 +177,11 @@ the sensitivity with respect to the initial condition :math:`g`:
 
   J = assemble(inner(u, u) * dx)
   m = Control(g)
-  
+
   adj_timer = Timer("Adjoint run")
   dJdm = compute_gradient(J, m, options={"riesz_representation": "L2"})
   adj_time = adj_timer.stop()
-  
+
 Note that we set the "riesz_representation" option to "L2" in
 :py:func:`compute_gradient`.  It indicates that the gradient should not be
 returned as an operator, that is not in the dual space :math:`V^*`, but
@@ -196,11 +196,11 @@ the runtime of the forward and adjoint solves.
   File("output/dJdm.pvd") << dJdm
   plot(dJdm, title="Sensitivity of ||u(t=%f)||_L2 with respect to u(t=0)." % t)
   show()
-  
+
   print("Forward time: ", fwd_time)
   print("Adjoint time: ", adj_time)
   print("Adjoint to forward runtime ratio: ", adj_time / fwd_time)
-  
+
 The example code can be found in ``examples/klein`` in the ``dolfin-adjoint``
 source tree, and executed as follows:
 

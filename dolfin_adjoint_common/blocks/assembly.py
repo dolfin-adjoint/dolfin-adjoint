@@ -1,16 +1,14 @@
 import ufl_legacy as ufl
 from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 from pyadjoint import Block, create_overloaded_object
+import dolfin
 
 
 class AssembleBlock(Block):
     def __init__(self, form, ad_block_tag=None):
         super(AssembleBlock, self).__init__(ad_block_tag=ad_block_tag)
         self.form = form
-        if self.backend.__name__ != "firedrake":
-            mesh = self.form.ufl_domain().ufl_cargo()
-        else:
-            mesh = self.form.ufl_domain()
+        mesh = self.form.ufl_domain().ufl_cargo()
         self.add_dependency(mesh)
         for c in self.form.coefficients():
             self.add_dependency(c, no_duplicates=True)
@@ -30,30 +28,30 @@ class AssembleBlock(Block):
         """
         if arity_form == 0:
             if dform is None:
-                dc = self.backend.TestFunction(space)
-                dform = self.backend.derivative(form, c_rep, dc)
+                dc = dolfin.TestFunction(space)
+                dform = dolfin.derivative(form, c_rep, dc)
             dform_vector = self.compat.assemble_adjoint_value(dform)
             # Return a Vector scaled by the scalar `adj_input`
             return dform_vector * adj_input, dform
         elif arity_form == 1:
             if dform is None:
-                dc = self.backend.TrialFunction(space)
-                dform = self.backend.derivative(form, c_rep, dc)
+                dc = dolfin.TrialFunction(space)
+                dform = dolfin.derivative(form, c_rep, dc)
             # Get the Function
             adj_input = adj_input.function
             # Symbolic operators such as action/adjoint require derivatives to have been expanded beforehand.
             # However, UFL doesn't support expanding coordinate derivatives of Coefficients in physical space,
             # implying that we can't symbolically take the action/adjoint of the Jacobian for SpatialCoordinates.
             # -> Workaround: Apply action/adjoint numerically (using PETSc).
-            if not isinstance(c_rep, self.backend.SpatialCoordinate):
+            if not isinstance(c_rep, dolfin.SpatialCoordinate):
                 # Symbolically compute: (dform/dc_rep)^* * adj_input
-                adj_output = self.backend.action(self.backend.adjoint(dform), adj_input)
+                adj_output = dolfin.action(dolfin.adjoint(dform), adj_input)
                 adj_output = self.compat.assemble_adjoint_value(adj_output)
             else:
                 # Get PETSc matrix
                 dform_mat = self.compat.assemble_adjoint_value(dform).petscmat
                 # Action of the adjoint (Hermitian transpose)
-                adj_output = self.backend.Function(space)
+                adj_output = dolfin.Function(space)
                 with adj_input.dat.vec_ro as v_vec:
                     with adj_output.dat.vec as res_vec:
                         dform_mat.multHermitian(v_vec, res_vec)
@@ -86,19 +84,19 @@ class AssembleBlock(Block):
             # And then make a TestFunction from this space.
             mesh = self.form.ufl_domain().ufl_cargo()
             V = c._ad_function_space(mesh)
-            dc = self.backend.TestFunction(V)
+            dc = dolfin.TestFunction(V)
 
-            dform = self.backend.derivative(form, c_rep, dc)
+            dform = dolfin.derivative(form, c_rep, dc)
             output = self.compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
 
         if self.compat.isconstant(c):
             mesh = self.compat.extract_mesh_from_form(self.form)
             space = c._ad_function_space(mesh)
-        elif isinstance(c, self.backend.Function):
+        elif isinstance(c, dolfin.Function):
             space = c.function_space()
         elif isinstance(c, self.compat.MeshType):
-            c_rep = self.backend.SpatialCoordinate(c_rep)
+            c_rep = dolfin.SpatialCoordinate(c_rep)
             space = c._ad_function_space()
 
         return self.compute_action_adjoint(adj_input, arity_form, form, c_rep, space)[0]
@@ -119,10 +117,10 @@ class AssembleBlock(Block):
             if tlm_value is None:
                 continue
             if isinstance(c_rep, self.compat.MeshType):
-                X = self.backend.SpatialCoordinate(c_rep)
-                dform += self.backend.derivative(form, X, tlm_value)
+                X = dolfin.SpatialCoordinate(c_rep)
+                dform += dolfin.derivative(form, X, tlm_value)
             else:
-                dform += self.backend.derivative(form, c_rep, tlm_value)
+                dform += dolfin.derivative(form, c_rep, tlm_value)
         if not isinstance(dform, float):
             dform = ufl.algorithms.expand_derivatives(dform)
             dform = self.compat.assemble_adjoint_value(dform)
@@ -149,13 +147,13 @@ class AssembleBlock(Block):
         if self.compat.isconstant(c1):
             mesh = self.compat.extract_mesh_from_form(form)
             space = c1._ad_function_space(mesh)
-        elif isinstance(c1, self.backend.Function):
+        elif isinstance(c1, dolfin.Function):
             space = c1.function_space()
         elif isinstance(c1, self.compat.ExpressionType):
             mesh = form.ufl_domain().ufl_cargo()
             space = c1._ad_function_space(mesh)
         elif isinstance(c1, self.compat.MeshType):
-            c1_rep = self.backend.SpatialCoordinate(c1)
+            c1_rep = dolfin.SpatialCoordinate(c1)
             space = c1._ad_function_space()
         else:
             return None
@@ -171,10 +169,10 @@ class AssembleBlock(Block):
                 continue
 
             if isinstance(c2_rep, self.compat.MeshType):
-                X = self.backend.SpatialCoordinate(c2_rep)
-                ddform += self.backend.derivative(dform, X, tlm_input)
+                X = dolfin.SpatialCoordinate(c2_rep)
+                ddform += dolfin.derivative(dform, X, tlm_input)
             else:
-                ddform += self.backend.derivative(dform, c2_rep, tlm_input)
+                ddform += dolfin.derivative(dform, c2_rep, tlm_input)
 
         if not isinstance(ddform, float):
             ddform = ufl.algorithms.expand_derivatives(ddform)
@@ -191,6 +189,6 @@ class AssembleBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         form = prepared
-        output = self.backend.assemble(form)
+        output = dolfin.assemble(form)
         output = create_overloaded_object(output)
         return output

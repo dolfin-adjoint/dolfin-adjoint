@@ -1,9 +1,9 @@
-import backend
+import fenics
 from . import SolveLinearSystemBlock
 from fenics_adjoint.types import as_backend_type
 from dolfin_adjoint_common import compat
 
-compat = compat.compat(backend)
+compat = compat.compat(fenics)
 
 
 class PETScKrylovSolveBlockHelper(object):
@@ -44,7 +44,7 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
     def _create_initial_guess(self):
         r = super(PETScKrylovSolveBlock, self)._create_initial_guess()
         if self.nonzero_initial_guess:
-            backend.Function.assign(r, self.initial_guess.saved_output)
+            fenics.Function.assign(r, self.initial_guess.saved_output)
         return r
 
     def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
@@ -53,21 +53,21 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
-            solver = backend.PETScKrylovSolver(self.method, self.preconditioner)
+            solver = fenics.PETScKrylovSolver(self.method, self.preconditioner)
             solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
             solver.set_from_options()
 
             if self.assemble_system:
-                rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_adj_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
+                rhs_bcs_form = fenics.inner(fenics.Function(self.function_space),
+                                            dFdu_adj_form.arguments()[0]) * fenics.dx
+                A, _ = fenics.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
 
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
-                    P, _ = backend.assemble_system(P, rhs_bcs_form, bcs)
+                    P, _ = fenics.assemble_system(P, rhs_bcs_form, bcs)
                     solver.set_operators(A, P)
                 else:
                     solver.set_operator(A)
@@ -95,31 +95,31 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
             if self._ad_nullspace._ad_orthogonalized:
                 self._ad_nullspace.orthogonalize(dJdu)
 
-        adj_sol = backend.Function(self.function_space)
+        adj_sol = fenics.Function(self.function_space)
         solver.solve(adj_sol.vector(), dJdu)
 
         adj_sol_bdy = None
         if compute_bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-                backend.action(dFdu_adj_form, adj_sol)))
+                fenics.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         solver = self.block_helper.forward_solver
         if solver is None:
-            solver = backend.PETScKrylovSolver(self.method, self.preconditioner)
+            solver = fenics.PETScKrylovSolver(self.method, self.preconditioner)
             solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
             solver.set_from_options()
 
             if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs)
+                A, _ = fenics.assemble_system(lhs, rhs, bcs)
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
-                    P, _ = backend.assemble_system(P, rhs, bcs)
+                    P, _ = fenics.assemble_system(P, rhs, bcs)
                     solver.set_operators(A, P)
                 else:
                     solver.set_operator(A)
@@ -139,8 +139,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
             self.block_helper.forward_solver = solver
 
         if self.assemble_system:
-            system_assembler = backend.SystemAssembler(lhs, rhs, bcs)
-            b = backend.Function(self.function_space).vector()
+            system_assembler = fenics.SystemAssembler(lhs, rhs, bcs)
+            b = fenics.Function(self.function_space).vector()
             system_assembler.assemble(b)
         else:
             b = compat.assemble_adjoint_value(rhs)

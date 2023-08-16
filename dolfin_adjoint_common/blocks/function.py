@@ -2,6 +2,7 @@ import ufl_legacy as ufl
 from ufl_legacy.corealg.traversal import traverse_unique_terminals
 from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 from pyadjoint import Block, OverloadedType, AdjFloat
+import dolfin
 
 
 class FunctionAssignBlock(Block):
@@ -54,14 +55,14 @@ class FunctionAssignBlock(Block):
                 R = block_variable.output._ad_function_space(prepared.function_space().mesh())
                 return self._adj_assign_constant(prepared, R)
             else:
-                adj_output = self.backend.Function(
+                adj_output = dolfin.Function(
                     block_variable.output.function_space())
                 adj_output.assign(prepared)
                 return adj_output.vector()
         else:
             # Linear combination
             expr, adj_input_func = prepared
-            adj_output = self.backend.Function(adj_input_func.function_space())
+            adj_output = dolfin.Function(adj_input_func.function_space())
             if not self.compat.isconstant(block_variable.output):
                 diff_expr = ufl.algorithms.expand_derivatives(
                     ufl.derivative(expr, block_variable.saved_output, adj_input_func)
@@ -86,7 +87,7 @@ class FunctionAssignBlock(Block):
                 return adj_output.vector()
 
     def _adj_assign_constant(self, adj_output, constant_fs):
-        r = self.backend.Function(constant_fs)
+        r = dolfin.Function(constant_fs)
         shape = r.ufl_shape
         if shape == () or shape[0] == 1:
             # Scalar Constant
@@ -97,7 +98,7 @@ class FunctionAssignBlock(Block):
             values = []
             for i in range(shape[0]):
                 values.append(adj_output.sub(i, deepcopy=True).vector().sum())
-            r.assign(self.backend.Constant(values))
+            r.assign(dolfin.Constant(values))
         return r.vector()
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
@@ -112,8 +113,8 @@ class FunctionAssignBlock(Block):
             return tlm_inputs[0]
 
         expr = prepared
-        dudm = self.backend.Function(block_variable.output.function_space())
-        dudmi = self.backend.Function(block_variable.output.function_space())
+        dudm = dolfin.Function(block_variable.output.function_space())
+        dudmi = dolfin.Function(block_variable.output.function_space())
         for dep in self.get_dependencies():
             if dep.tlm_value:
                 dudmi.assign(ufl.algorithms.expand_derivatives(
@@ -144,7 +145,7 @@ class FunctionAssignBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         if self.expr is None:
             prepared = inputs[0]
-        output = self.backend.Function(block_variable.output.function_space())
+        output = dolfin.Function(block_variable.output.function_space())
         output.assign(prepared)
         return output
 

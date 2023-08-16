@@ -1,9 +1,9 @@
-import backend
-from fenics_adjoint.compat import compat
-
+import fenics
 from pyadjoint import Block
 
-compat = compat(backend)
+from fenics_adjoint.compat import compat
+
+compat = compat(fenics)
 
 
 class FunctionAssignerBlock(Block):
@@ -17,13 +17,13 @@ class FunctionAssignerBlock(Block):
         adj_assigner = self.assigner.adj_assigner
         inp_functions = []
         for i in range(len(adj_inputs)):
-            f_in = backend.Function(self.assigner.output_spaces[i])
+            f_in = fenics.Function(self.assigner.output_spaces[i])
             if adj_inputs[i] is not None:
                 f_in.vector()[:] = adj_inputs[i]
             inp_functions.append(f_in)
         out_functions = []
         for j in range(len(self.assigner.input_spaces)):
-            f_out = backend.Function(self.assigner.input_spaces[j])
+            f_out = fenics.Function(self.assigner.input_spaces[j])
             out_functions.append(f_out)
         adj_assigner.assign(self.assigner.input_spaces.delist(out_functions),
                             self.assigner.output_spaces.delist(inp_functions))
@@ -49,10 +49,10 @@ class FunctionAssignerBlock(Block):
     def prepare_recompute_component(self, inputs, relevant_outputs):
         out_functions = []
         for output in self.get_outputs():
-            out_functions.append(backend.Function(output.output.function_space()))
-        backend.FunctionAssigner.assign(self.assigner,
-                                        self.assigner.output_spaces.delist(out_functions),
-                                        self.assigner.input_spaces.delist(inputs))
+            out_functions.append(fenics.Function(output.output.function_space()))
+        fenics.FunctionAssigner.assign(self.assigner,
+                                       self.assigner.output_spaces.delist(out_functions),
+                                       self.assigner.input_spaces.delist(inputs))
         return out_functions
 
     def recompute_component(self, inputs, block_variable, idx, out_functions):

@@ -1,35 +1,21 @@
-import backend
+import dolfin
 import ufl_legacy as ufl
 import ufl_legacy.algorithms as ufl_algorithms
-import numpy
+from pyadjoint.optimization.constraints import (Constraint, EqualityConstraint,
+                                                InequalityConstraint)
 
-from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
-
-
-if backend.__name__ in ["dolfin", "fenics"]:
-    import fenics_adjoint.types as backend_types
-else:
-    backend_types = backend
+import fenics_adjoint.types as backend_types
 
 
 def as_vec(x):
-    if backend.__name__ in ["dolfin", "fenics"]:
-        if isinstance(x, backend.Function):
-            out = x.vector().get_local()
-        else:
-            out = x.get_local()
-
-        if len(out) == 1:
-            out = out[0]
-        return backend_types.Constant(out)
-    elif backend.__name__ == "firedrake":
-        with x.dat.vec_ro as vec:
-            copy = numpy.array(vec)
-        if len(copy) == 1:
-            copy = copy[0]
-        return backend_types.Constant(copy)
+    if isinstance(x, dolfin.Function):
+        out = x.vector().get_local()
     else:
-        raise NotImplementedError("Unknown backend")
+        out = x.get_local()
+
+    if len(out) == 1:
+        out = out[0]
+    return backend_types.Constant(out)
 
 
 class UFLConstraint(Constraint):
@@ -41,7 +27,7 @@ class UFLConstraint(Constraint):
 
     def __init__(self, form, control):
 
-        if not isinstance(control.control, backend.Function):
+        if not isinstance(control.control, dolfin.Function):
             raise NotImplementedError("Only implemented for Function controls")
 
         args = ufl_algorithms.extract_arguments(form)
@@ -56,13 +42,13 @@ class UFLConstraint(Constraint):
         self.u = backend_types.Function(self.V)
         self.form = ufl.replace(form, {u: self.u})
 
-        self.trial = backend.TrialFunction(self.V)
-        self.dform = backend.derivative(self.form, self.u, self.trial)
+        self.trial = dolfin.TrialFunction(self.V)
+        self.dform = dolfin.derivative(self.form, self.u, self.trial)
         if len(ufl_algorithms.extract_arguments(ufl_algorithms.expand_derivatives(self.dform))) == 0:
             raise ValueError("Form must depend on control")
 
-        self.test = backend.TestFunction(self.V)
-        self.hess = ufl_algorithms.expand_derivatives(backend.derivative(self.dform, self.u, self.test))
+        self.test = dolfin.TestFunction(self.V)
+        self.hess = ufl_algorithms.expand_derivatives(dolfin.derivative(self.dform, self.u, self.test))
         if len(ufl_algorithms.extract_arguments(self.hess)) == 0:
             self.zero_hess = True
         else:
@@ -73,14 +59,14 @@ class UFLConstraint(Constraint):
             assert len(m) == 1
             m = m[0]
 
-        if isinstance(m, backend.Function):
+        if isinstance(m, dolfin.Function):
             self.u.assign(m)
         else:
             self.u._ad_assign_numpy(self.u, m, 0)
 
     def function(self, m):
         self.update_control(m)
-        b = backend.assemble(self.form)
+        b = dolfin.assemble(self.form)
         return backend_types.Constant(b)
 
     def jacobian(self, m):
@@ -89,7 +75,7 @@ class UFLConstraint(Constraint):
             m = m[0]
 
         self.update_control(m)
-        out = [backend.assemble(self.dform)]
+        out = [dolfin.assemble(self.dform)]
         return out
 
     def jacobian_action(self, m, dm, result):
@@ -100,8 +86,8 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        form = backend.action(self.dform, dm)
-        result.assign(backend.assemble(form))
+        form = dolfin.action(self.dform, dm)
+        result.assign(dolfin.assemble(form))
 
     def jacobian_adjoint_action(self, m, dp, result):
         """Computes the Jacobian adjoint action of c(m) in direction dp and stores the result in result. """
@@ -111,9 +97,9 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        asm = backend.assemble(dp * ufl.replace(self.dform, {self.trial: self.test}))
-        if isinstance(result, backend.Function):
-            if backend.__name__ in ["dolfin", "fenics"]:
+        asm = dolfin.assemble(dp * ufl.replace(self.dform, {self.trial: self.test}))
+        if isinstance(result, dolfin.Function):
+            if dolfin.__name__ in ["dolfin", "fenics"]:
                 result.vector().zero()
                 result.vector().axpy(1.0, asm)
             else:
@@ -130,18 +116,18 @@ class UFLConstraint(Constraint):
         self.update_control(m)
 
         H = dm * ufl.replace(self.hess, {self.trial: dp})
-        if isinstance(result, backend.Function):
-            if backend.__name__ in ["dolfin", "fenics"]:
+        if isinstance(result, dolfin.Function):
+            if dolfin.__name__ in ["dolfin", "fenics"]:
                 if self.zero_hess:
                     result.vector().zero()
                 else:
                     result.vector().zero()
-                    result.vector().axpy(1.0, backend.assemble(H))
+                    result.vector().axpy(1.0, dolfin.assemble(H))
             else:
                 if self.zero_hess:
                     result.assign(0)
                 else:
-                    result.assign(backend.assemble(H))
+                    result.assign(dolfin.assemble(H))
 
         else:
             raise NotImplementedError("Do I need to untangle all controls?")
@@ -149,7 +135,7 @@ class UFLConstraint(Constraint):
     def output_workspace(self):
         """Return an object like the output of c(m) for calculations."""
 
-        return backend_types.Constant(backend.assemble(self.form))
+        return backend_types.Constant(dolfin.assemble(self.form))
 
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""
