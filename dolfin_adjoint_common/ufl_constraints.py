@@ -4,7 +4,7 @@ import ufl_legacy.algorithms as ufl_algorithms
 from pyadjoint.optimization.constraints import (Constraint, EqualityConstraint,
                                                 InequalityConstraint)
 
-import fenics_adjoint.types as backend_types
+import fenics_adjoint.types
 
 
 def as_vec(x):
@@ -15,7 +15,7 @@ def as_vec(x):
 
     if len(out) == 1:
         out = out[0]
-    return backend_types.Constant(out)
+    return fenics_adjoint.types.Constant(out)
 
 
 class UFLConstraint(Constraint):
@@ -39,7 +39,7 @@ class UFLConstraint(Constraint):
         # We want to make a copy of the control purely for use
         # in the constraint, so that our writing it isn't
         # bothering anyone else
-        self.u = backend_types.Function(self.V)
+        self.u = fenics_adjoint.types.Function(self.V)
         self.form = ufl.replace(form, {u: self.u})
 
         self.trial = dolfin.TrialFunction(self.V)
@@ -67,7 +67,7 @@ class UFLConstraint(Constraint):
     def function(self, m):
         self.update_control(m)
         b = dolfin.assemble(self.form)
-        return backend_types.Constant(b)
+        return fenics_adjoint.types.Constant(b)
 
     def jacobian(self, m):
         if isinstance(m, list):
@@ -135,7 +135,7 @@ class UFLConstraint(Constraint):
     def output_workspace(self):
         """Return an object like the output of c(m) for calculations."""
 
-        return backend_types.Constant(dolfin.assemble(self.form))
+        return fenics_adjoint.types.Constant(dolfin.assemble(self.form))
 
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""
