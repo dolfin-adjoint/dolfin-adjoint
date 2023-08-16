@@ -6,7 +6,7 @@
 # Jack S. Hale <jack.hale@uni.lu>
 # Jørgen S. Dokken <dokken@simula.no>
 
-FROM scientificcomputing/fenics:2023-08-14
+FROM ghcr.io/scientificcomputing/fenics:2023-08-14
 ARG TARGETPLATFORM
 
 RUN apt-get -qq update && \
