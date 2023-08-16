@@ -1,5 +1,3 @@
-.. _dolfin-adjoint-about:
-
 .. title:: dolfin-adjoint about
 
 *****
@@ -31,6 +29,11 @@ where the model is implemented in the Python interface to FEniCS.
 
 News
 ====
+
+**16.08.2023**: dolfin-adjoint 2023.1.0 released, supporting ufl_legacy: https://fenicsproject.discourse.group/t/announcement-ufl-legacy-and-legacy-dolfin/11583
+
+**16.08.2023**: dolfin-adjoint 2023.0.0 released, built based on dolfin prior to introduction of ufl-legacy
+
 **16.08.2023**: dolfin-adjoint is moved to `github_repo`_.
 
 **27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
@@ -44,17 +47,17 @@ News
 
                 :ref:`dolfin-adjoint-difference`
 
-**31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog`_.
+**31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog.rst`_.
 
 **21.02.2017**: dolfin-adjoint 2016.2 is now available as Conda package.
 
-**20.12.2016**: dolfin-adjoint 2016.2 released (compatible with FEniCS 2016.2) `Changelog`_.
+**20.12.2016**: dolfin-adjoint 2016.2 released (compatible with FEniCS 2016.2) `Changelog.rst`_.
 
 **08.9.2016**: We now offer Docker images to simplify the installation procedure.
 
-**30.8.2016**: dolfin-adjoint 2016.1 released (compatible with FEniCS 2016.1) `Changelog`_.
+**30.8.2016**: dolfin-adjoint 2016.1 released (compatible with FEniCS 2016.1) `Changelog.rst`_.
 
-**20.8.2015**: dolfin-adjoint 1.6 released (compatible with FEniCS 1.6) `Changelog`_.
+**20.8.2015**: dolfin-adjoint 1.6 released (compatible with FEniCS 1.6) `Changelog.rst`_.
 
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 

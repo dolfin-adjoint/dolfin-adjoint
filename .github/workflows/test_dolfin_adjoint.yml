@@ -16,7 +16,7 @@ env:
 jobs:
   test-code:
     runs-on:  ubuntu-22.04
-    container: ghcr.io/scientificcomputing/fenics-gmsh:2023-04-21
+    container: ghcr.io/scientificcomputing/fenics:2023-08-14
 
     steps:
       - uses: actions/checkout@v3
