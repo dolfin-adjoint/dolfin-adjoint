@@ -20,28 +20,28 @@ EXAMPLES_IN = ../examples
 EXAMPLES_OUT = source/documentation
 
 examples:
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/poisson-mother/poisson-mother.py $(EXAMPLES_OUT)/poisson-mother/poisson-mother.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/poisson-topology/poisson-topology.py $(EXAMPLES_OUT)/poisson-topology/poisson-topology.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-bc-control/stokes-bc-control.py $(EXAMPLES_OUT)/stokes-bc-control/stokes-bc-control.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-topology/stokes-topology.py $(EXAMPLES_OUT)/stokes-topology/stokes-topology.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/mpec/mpec.py $(EXAMPLES_OUT)/mpec/mpec.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/klein/klein.py $(EXAMPLES_OUT)/klein/klein.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-shape-opt/stokes_problem.py $(EXAMPLES_OUT)/stokes-shape-opt/stokes_problem.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-distributed-control/time-distributed-control.py $(EXAMPLES_OUT)/time-distributed-control/time-distributed-control.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-dependent-wave/time-dependent-wave.py $(EXAMPLES_OUT)/time-dependent-wave/time-dependent-wave.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/tube-shape-derivative/tube-shape-derivative.py $(EXAMPLES_OUT)/tube-shape-derivative/tube-shape-derivative.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/reaction-rate-learning/reaction-rate-learning.py $(EXAMPLES_OUT)/reaction-rate-learning/reaction-rate-learning.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/poisson-mother/poisson-mother.py $(EXAMPLES_OUT)/poisson-mother/poisson-mother.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/poisson-topology/poisson-topology.py $(EXAMPLES_OUT)/poisson-topology/poisson-topology.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/stokes-bc-control/stokes-bc-control.py $(EXAMPLES_OUT)/stokes-bc-control/stokes-bc-control.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/stokes-topology/stokes-topology.py $(EXAMPLES_OUT)/stokes-topology/stokes-topology.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/mpec/mpec.py $(EXAMPLES_OUT)/mpec/mpec.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/klein/klein.py $(EXAMPLES_OUT)/klein/klein.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/stokes-shape-opt/stokes_problem.py $(EXAMPLES_OUT)/stokes-shape-opt/stokes_problem.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/time-distributed-control/time-distributed-control.py $(EXAMPLES_OUT)/time-distributed-control/time-distributed-control.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/time-dependent-wave/time-dependent-wave.py $(EXAMPLES_OUT)/time-dependent-wave/time-dependent-wave.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/tube-shape-derivative/tube-shape-derivative.py $(EXAMPLES_OUT)/tube-shape-derivative/tube-shape-derivative.rst
+	python3 -m pylit --overwrite=yes $(EXAMPLES_IN)/reaction-rate-learning/reaction-rate-learning.py $(EXAMPLES_OUT)/reaction-rate-learning/reaction-rate-learning.rst
 
 run_tutorials:
-	python source/_static/tutorial1.py
-	python source/_static/tutorial2.py
-	python source/_static/tutorial3.py
-	python source/_static/tutorial4.py
-	python source/_static/tutorial7.py
-	python source/_static/tutorial7_named.py
-	python source/_static/tutorial8.py
-	python source/_static/overloading/tutorial9.py
-	python source/_static/overloading/tutorial10.py
+	python3 source/_static/tutorial1.py
+	python3 source/_static/tutorial2.py
+	python3 source/_static/tutorial3.py
+	python3 source/_static/tutorial4.py
+	python3 source/_static/tutorial7.py
+	python3 source/_static/tutorial7_named.py
+	python3 source/_static/tutorial8.py
+	python3 source/_static/overloading/tutorial9.py
+	python3 source/_static/overloading/tutorial10.py
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"

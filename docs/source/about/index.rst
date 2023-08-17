@@ -6,8 +6,7 @@ About
 
 The dolfin-adjoint project automatically **derives the discrete
 adjoint and tangent linear models** from a forward model written in
-the Python interface to `FEniCS <http://fenicsproject.org>`__ and 
-`Firedrake <http://firedrakeproject.org>`__.
+the Python interface to `FEniCS <http://fenicsproject.org>`.
 
 These adjoint and tangent linear models are key ingredients in many
 important algorithms, such as data assimilation, optimal control,
@@ -23,16 +22,22 @@ implementation. In `his recent book`_, Naumann (2011) states that
  Scientific Computing**.
 
 **The dolfin-adjoint project aims to solve this problem** for the case
-where the model is implemented in the Python interface to FEniCS/Firedrake.
+where the model is implemented in the Python interface to FEniCS.
 
 .. _his recent book: http://dx.doi.org/10.1137/1.9781611972078
 
 
 News
 ====
-**27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
+**17.08.2023**: dolfin-adjoint 2023.2.0 released, removing pyadjoint and firedrake-adjoint from the Github-repository. 
 
-**20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<../../download/index>`
+**16.08.2023**: dolfin-adjoint 2023.1.0 released, supporting ufl_legacy: https://fenicsproject.discourse.group/t/announcement-ufl-legacy-and-legacy-dolfin/11583
+
+**16.08.2023**: dolfin-adjoint 2023.0.0 released, built based on dolfin prior to introduction of ufl-legacy
+
+**16.08.2023**: dolfin-adjoint is moved to `github_repo`_.
+
+**27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
 
 **18.02.2019**: New example demonstrating the shape-optimisation capabilities of dolfin-adjoint :doc:`now available<../documentation/stokes-shape-opt/stokes_problem>`
 
@@ -57,8 +62,9 @@ News
 
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 
-.. _ChangeLog.rst: https://github.com/dolfin-adjoint/pyadjoint/blob/master/ChangeLog.rst
-.. _available here: https://github.com/dolfin-adjoint/pyadjoint/blob/master/tests/migration/README.md
+.. _github_repo: https://github.com/dolfin-adjoint/dolfin-adjoint/
+.. _ChangeLog.rst: https://github.com/dolfin-adjoint/dolfin-adjoint/blob/master/ChangeLog.rst
+.. _available here: https://github.com/dolfin-adjoint/dolfin-adjoint/blob/master/tests/migration/README.md
 .. _contact us: support/index.html
 .. _pyadjoint: https://github.com/dolfin-adjoint/pyadjoint
 .. _documentation: http://dolfin-adjoint-doc.readthedocs.io/
@@ -92,10 +98,10 @@ Limitations
 To do all this, dolfin-adjoint requires some cooperation from the
 model developer:
 
-- Works only with the **Python** interface of FEniCS and Firedrake.
+- Works only with the **Python** interface of FEniCS.
 - For the adjoint to be consistent, the discretisation must be differentiable.
 - All changes to object values (matrices, vectors, functions) must happen
-  through the FEniCS/Firedrake interface, though custom operations can be 
+  through the FEniCS interface, though custom operations can be 
   recorded manually.
 
 

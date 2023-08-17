@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. py:currentmodule:: dolfin_adjoint
 
 Mathematical Programs with Equilibrium Constraints
@@ -120,16 +120,16 @@ output comprehensible:
 
   from dolfin import *
   from ufl.operators import Max
-  
+
   from dolfin_adjoint import *
   from pyadjoint.placeholder import Placeholder
-  
+
   set_log_level(LogLevel.ERROR)
-  
+
   # Needed to have a nested conditional
   parameters["form_compiler"]["representation"] = "uflacs"
-  
-  
+
+
 Next, we define the smooth approximation :math:`\max_{\epsilon}` of
 the maximum operator:
 
@@ -137,8 +137,8 @@ the maximum operator:
 
   def smoothmax(r, eps=1e-4):
       return conditional(gt(r, eps), r - eps / 2, conditional(lt(r, 0), 0, r ** 2 / (2 * eps)))
-  
-  
+
+
 Now, we are ready to mesh the domain and define the discrete function
 spaces.  For this example we use piecewise linear, continuous finite
 elements for both the solution and control.
@@ -152,7 +152,7 @@ elements for both the solution and control.
   ic = Control(y)
   u = Function(V, name="Control")
   w = TestFunction(V)
-  
+
 Next, we define and solve the variational formulation of the PDE
 constraint with the penalisation parameter set to
 :math:`\alpha=10^{-2}`.  This initial value of :math:`\alpha` will
@@ -169,7 +169,7 @@ we define a ``Placeholder`` before using it.
   F = inner(grad(y), grad(w)) * dx - 1 / alpha * inner(smoothmax(-y), w) * dx - inner(f + u, w) * dx
   bc = DirichletBC(V, 0.0, "on_boundary")
   solve(F == 0, y, bcs=bc)
-  
+
 With the forward problem solved once, :py:mod:`dolfin_adjoint` has
 built a *tape* of the forward model; it will use this tape to drive
 the optimisation, by repeatedly solving the forward model and the
@@ -184,15 +184,15 @@ functional <../maths/2-problem>` object:
   yd = f.copy(deepcopy=True)
   nu = 0.01
   J = assemble(0.5 * inner(y - yd, y - yd) * dx + nu / 2 * inner(u, u) * dx)
-  
+
   # Formulate the reduced problem
   m = Control(u)  # Create a parameter from u, as it is the variable we want to optimise
   Jhat = ReducedFunctional(J, m)
-  
+
   # Create output files
   ypvd = File("output/y_opt.pvd")
   upvd = File("output/u_opt.pvd")
-  
+
 Next, we implement the main loop of the algorithm. In every iteration
 we will halve the penalisation parameter and (re-)solve the
 optimisation problem. The optimised control value will then be used as
@@ -206,7 +206,7 @@ We begin by defining the loop and updating the :math:`\alpha` value.
       # Update the penalisation value
       alpha.assign(float(alpha) / 2)
       print("Set alpha to %f." % float(alpha))
-  
+
 We rely on a useful property of dolfin-adjoint here: if an object
 has been used while being a Placeholder (here achieved by creating the
 :py:class:`Placeholder <pyadjoint.placeholder.Placeholder>` object
@@ -222,7 +222,7 @@ select a set of sensible stopping criteria:
 ::
 
       u_opt = minimize(Jhat, method="L-BFGS-B", bounds=(0.01, 0.03), options={"gtol": 1e-12, "ftol": 1e-100})
-  
+
 The following step is optional and implements a performance
 improvement. The idea is to use the optimised state solution as an
 initial guess for the Newton solver in the next optimisation round.
@@ -237,7 +237,7 @@ function on the tape, which is exactly what we want here:
 ::
 
       y_opt = Control(y).tape_value()
-  
+
 The next line modifies the tape such that the initial guess for ``y``
 (to be used in the Newton solver in the forward problem) is set to
 ``y_opt``.  This is achieved with the
@@ -247,7 +247,7 @@ The next line modifies the tape such that the initial guess for ``y``
 ::
 
       ic.update(y_opt)
-  
+
 Finally, we store the optimal state and control to disk and print some
 statistics:
 
@@ -259,7 +259,7 @@ statistics:
       print("Feasibility: %s" % feasibility)
       print("Norm of y: %s" % sqrt(assemble(inner(y_opt, y_opt) * dx)))
       print("Norm of u_opt: %s" % sqrt(assemble(inner(u_opt, u_opt) * dx)))
-  
+
 The example code can be found in ``examples/mpec/`` in the
 ``dolfin-adjoint`` source tree, and executed as follows:
 

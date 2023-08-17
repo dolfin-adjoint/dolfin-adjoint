@@ -34,7 +34,7 @@ jobs:
 
       - name: Run tests
         run: |
-            coverage run --source=fenics_adjoint,pyadjoint -m pytest tests/fenics_adjoint/ tests/pyadjoint/
+            coverage run --source=fenics_adjoint -m pytest tests/fenics_adjoint/ -rs
             coverage report
             coverage html
 

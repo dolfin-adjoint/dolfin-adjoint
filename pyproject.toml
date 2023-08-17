@@ -1,0 +1,44 @@
+[build-system] # Require setuptool version due to https://github.com/pypa/setuptools/issues/2938
+requires = ["setuptools>=61.0.0", "wheel"]
+
+[project]
+name = "dolfin_adjoint"
+version = "2023.2.0"
+description = "High-level automatic differentiation library for FEniCS"
+authors = [
+    { name = "Jørgen S. Dokken" },
+    { name = "Sebastian K. Mitusch" },
+    { name = "Simon W. Funke" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+dependencies = [
+    "fenics-ufl-legacy",
+    "scipy>=1.0",
+    'pyadjoint@git+https://github.com/dolfin-adjoint/pyadjoint',
+]
+
+
+[project.optional-dependencies]
+moola = ["moola>=0.1.6"]
+test = ['pytest>=3.10', 'flake8', 'coverage']
+dev = ["pdbpp", "ipython", "mypy", "flake8"]
+visualisation = ['tensorflow', 'protobuf', 'networkx', 'pygraphviz']
+meshing = ['pygmsh', 'meshio']
+all = [
+    "dolfin_adjoint[test]",
+    "dolfin_adjoint[moola]",
+    "dolfin_adjoint[dev]",
+    "dolfin_adjoint[visualisation]",
+]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+testpaths = ["tests"]
+
+[tool.mypy]
+ignore_missing_imports = true
+# Folders to exclude
+exclude = ["docs/", "build/"]
+# Folder to check with mypy
+files = ["src", "tests"]

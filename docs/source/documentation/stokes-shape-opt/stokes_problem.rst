@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. py:currentmodule:: dolfin_adjoint
 
 Drag minimization over an obstacle in Stokes-flow
@@ -96,7 +96,7 @@ First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are imported:
   from dolfin import *
   from dolfin_adjoint import *
   set_log_level(LogLevel.ERROR)
-  
+
 Next, we load the facet marker values used in the mesh, as well as some
 geometrical quantities mesh-generator file.
 
@@ -109,19 +109,19 @@ xdmf-files.
   mesh = Mesh()
   with XDMFFile("mesh.xdmf") as infile:
       infile.read(mesh)
-  
+
   mvc = MeshValueCollection("size_t", mesh, 1)
   with XDMFFile("mf.xdmf") as infile:
       infile.read(mvc, "name_to_read")
       mf = cpp.mesh.MeshFunctionSizet(mesh, mvc)
-  
+
 We compute the initial volume of the obstacle
 
 ::
 
   one = Constant(1)
   Vol0 = L * H - assemble(one * dx(domain=mesh))
-  
+
 We create a Boundary-mesh and function space for our control :math:`h`
 
 ::
@@ -129,9 +129,9 @@ We create a Boundary-mesh and function space for our control :math:`h`
   b_mesh = BoundaryMesh(mesh, "exterior")
   S_b = VectorFunctionSpace(b_mesh, "CG", 1)
   h = Function(S_b, name="Design")
-  
+
   zero = Constant([0] * mesh.geometric_dimension())
-  
+
 We create a corresponding function space on :math:`\Omega`, and
 transfer the corresponding boundary values to the function
 :math:`h_V`. This call is needed to be able to represent
@@ -143,7 +143,7 @@ transfer the corresponding boundary values to the function
   s = Function(S, name="Mesh perturbation field")
   h_V = transfer_from_boundary(h, mesh)
   h_V.rename("Volume extension of h", "")
-  
+
 We can now transfer our mesh according to :eq:`deformation`.
 
 
@@ -153,42 +153,42 @@ We can now transfer our mesh according to :eq:`deformation`.
       # Compute variable :math:`\mu`
       V = FunctionSpace(mesh, "CG", 1)
       u, v = TrialFunction(V), TestFunction(V)
-  
+
       a = -inner(grad(u), grad(v)) * dx
       l = Constant(0) * v * dx
-  
+
       mu_min = Constant(1, name="mu_min")
       mu_max = Constant(500, name="mu_max")
       bcs = []
       for marker in [inflow_marker, outflow_marker, wall_marker]:
           bcs.append(DirichletBC(V, mu_min, mf, marker))
       bcs.append(DirichletBC(V, mu_max, mf, obstacle_marker))
-  
+
       mu = Function(V, name="mesh deformation mu")
       solve(a == l, mu, bcs=bcs)
-  
+
       # Compute the mesh deformation
       S = VectorFunctionSpace(mesh, "CG", 1)
       u, v = TrialFunction(S), TestFunction(S)
       dObstacle = Measure("ds", subdomain_data=mf, subdomain_id=obstacle_marker)
-  
+
       def epsilon(u):
           return sym(grad(u))
-  
+
       def sigma(u, mu=500, lmb=0):
           return 2 * mu * epsilon(u) + lmb * tr(epsilon(u)) * Identity(2)
-  
+
       a = inner(sigma(u, mu=mu), grad(v)) * dx
       L = inner(h, v) * dObstacle
-  
+
       bcs = []
       for marker in [inflow_marker, outflow_marker, wall_marker]:
           bcs.append(DirichletBC(S, zero, mf, marker))
-  
+
       s = Function(S, name="mesh deformation")
       solve(a == L, s, bcs=bcs)
       return s
-  
+
 We compute the mesh deformation with the volume extension of the control
 variable :math:`h` and move the domain.
 
@@ -197,7 +197,7 @@ variable :math:`h` and move the domain.
 
   s = mesh_deformation(h_V)
   ALE.move(mesh, s)
-  
+
 The next step is to set up :eq:`state`. We start by defining the
 stable Taylor-Hood finite element space.
 
@@ -206,7 +206,7 @@ stable Taylor-Hood finite element space.
   V2 = VectorElement("CG", mesh.ufl_cell(), 2)
   S1 = FiniteElement("CG", mesh.ufl_cell(), 1)
   VQ = FunctionSpace(mesh, V2 * S1)
-  
+
 Then, we define the test and trial functions, as well as the variational form
 
 ::
@@ -215,7 +215,7 @@ Then, we define the test and trial functions, as well as the variational form
   (v, q) = TestFunctions(VQ)
   a = inner(grad(u), grad(v)) * dx - div(u) * q * dx - div(v) * p * dx
   l = inner(zero, v) * dx
-  
+
 The Dirichlet boundary conditions on :math:`\Gamma` is defined as follows
 
 ::
@@ -226,7 +226,7 @@ The Dirichlet boundary conditions on :math:`\Gamma` is defined as follows
   bc_obstacle = DirichletBC(VQ.sub(0), zero, mf, obstacle_marker)
   bc_walls = DirichletBC(VQ.sub(0), zero, mf, wall_marker)
   bcs = [bc_inlet, bc_obstacle, bc_walls]
-  
+
 We solve the mixed equations and split the solution into the velocity-field
 :math:`u` and pressure-field :math:`p`.
 
@@ -235,7 +235,7 @@ We solve the mixed equations and split the solution into the velocity-field
   w = Function(VQ, name="Mixed State Solution")
   solve(a == l, w, bcs=bcs)
   u, p = w.split()
-  
+
 Plotting the initial velocity and pressure
 
 ::
@@ -249,14 +249,14 @@ Plotting the initial velocity and pressure
   plot(p, zorder=1)
   plt.axis("off")
   plt.savefig("intial.png", dpi=800, bbox_inches="tight", pad_inches=0)
-  
+
 We compute the dissipated energy in the fluid volume,
 :math:`\int_{\Omega(s)} \sum_{i,j=1}^2 \left(\frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x`
 
 ::
 
   J = assemble(inner(grad(u), grad(u)) * dx)
-  
+
 Then, we add a weak enforcement of the volume contraint,
 :math:`\alpha\big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\big)^2`.
 
@@ -265,7 +265,7 @@ Then, we add a weak enforcement of the volume contraint,
   alpha = 1e4
   Vol = assemble(one * dx(domain=mesh))
   J += alpha * ((L * H - Vol) - Vol0)**2
-  
+
 Similarly, we add a weak enforcement of the barycenter contraint,
 :math:`\beta\big(\mathrm{Bc}_j(\Omega(s))-\mathrm{Bc}_j(\Omega_0)\big)^2`.
 
@@ -275,14 +275,14 @@ Similarly, we add a weak enforcement of the barycenter contraint,
   Bc2 = (L * H**2 / 2 - assemble(y * dx(domain=mesh))) / (L * H - Vol)
   beta = 1e4
   J += beta * ((Bc1 - c_x)**2 + (Bc2 - c_y)**2)
-  
+
 We define the reduced functional, where :math:`h` is the design parameter# and use scipy to minimize the objective.
 
 ::
 
   Jhat = ReducedFunctional(J, Control(h))
   s_opt = minimize(Jhat, tol=1e-6, options={"gtol": 1e-6, "maxiter": 50, "disp": True})
-  
+
   # We evaluate the functional with the optimal solution and plot
   # the initial and final mesh
   plt.figure()
@@ -293,7 +293,7 @@ We define the reduced functional, where :math:`h` is the design parameter# and u
   plt.legend(handles=[initial, optimal])
   plt.axis("off")
   plt.savefig("meshes.png", dpi=800, bbox_inches="tight", pad_inches=0)
-  
+
 .. figure:: meshes.png
   :scale: 15
   :align: center
@@ -310,7 +310,7 @@ to the expected values.
   assert(min(results["R0"]["Rate"]) > 0.9)
   assert(min(results["R1"]["Rate"]) > 1.95)
   assert(min(results["R2"]["Rate"]) > 2.95)
-  
+
 .. bibliography:: /documentation/stokes-shape-opt/stokes-shape-opt.bib
    :cited:
    :labelprefix: 1E-

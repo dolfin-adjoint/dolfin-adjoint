@@ -19,7 +19,12 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+
+    run-tests:
+        uses: ./.github/workflows/test_dolfin_adjoint.yml
+
     build-and-push-image:
+        needs: [run-tests]
         runs-on: ubuntu-latest
         permissions:
           contents: read
@@ -55,7 +60,7 @@ jobs:
                 context: .
                 push: false
                 load: true
-                file: ./docker/fenics/Dockerfile
+                file: ./docker/Dockerfile
                 platforms: linux/amd64
                 tags: ${{ steps.meta.outputs.tags }}
                 labels: ${{ steps.meta.outputs.labels }}
@@ -76,9 +81,9 @@ jobs:
             uses: docker/build-push-action@v3
             if: ${{ github.event_name == 'release' }}
             with:
-              context: .
-              push: true
-              file: ./docker/fenics/Dockerfile
-              platforms: linux/amd64,linux/arm64
-              tags: ${{ steps.meta.outputs.tags }}
-              # labels: ${{ steps.meta.outputs.labels }}
+                context: .
+                push: true
+                file: ./docker/Dockerfile
+                platforms: linux/amd64,linux/arm64
+                tags: ${{ steps.meta.outputs.tags }}
+                # labels: ${{ steps.meta.outputs.labels }}
