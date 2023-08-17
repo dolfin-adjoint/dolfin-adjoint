@@ -29,6 +29,7 @@ where the model is implemented in the Python interface to FEniCS.
 
 News
 ====
+**17.08.2023**: dolfin-adjoint 2023.2.0 released, removing pyadjoint and firedrake-adjoint from the Github-repository. 
 
 **16.08.2023**: dolfin-adjoint 2023.1.0 released, supporting ufl_legacy: https://fenicsproject.discourse.group/t/announcement-ufl-legacy-and-legacy-dolfin/11583
 

@@ -12,7 +12,7 @@ extras = {
 extras['all'] = list(chain(*extras.values()))
 
 setup(name='dolfin_adjoint',
-      version='2023.1.0',
+      version='2023.2.0',
       description='High-level automatic differentiation library for FEniCS.',
       author='Jørgen S. Dokken',
       author_email='dokken@simula.no',
