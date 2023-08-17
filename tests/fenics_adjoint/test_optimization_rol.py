@@ -1,11 +1,9 @@
+import pytest
 pytest.importorskip("fenics")
 pytest.importorskip("ROL")
 
 from fenics import *
 from fenics_adjoint import *
-
-import pytest
-
 
 
 def setup_problem(n=20):
