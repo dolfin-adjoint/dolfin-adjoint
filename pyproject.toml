@@ -13,7 +13,6 @@ authors = [
 license = { file = "LICENSE" }
 readme = "README.md"
 dependencies = [
-    "fenics",
     "fenics-ufl-legacy",
     "scipy>=1.0",
     'pyadjoint@git+https://github.com/dolfin-adjoint/pyadjoint',
