@@ -1,8 +1,8 @@
-import dolfin as backend
+import dolfin
 from . import SolveLinearSystemBlock
 from dolfin_adjoint_common import compat
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
 class KrylovSolveBlockHelper(object):
@@ -47,7 +47,7 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
     def _create_initial_guess(self):
         r = super(KrylovSolveBlock, self)._create_initial_guess()
         if self.nonzero_initial_guess:
-            backend.Function.assign(r, self.initial_guess.saved_output)
+            dolfin.Function.assign(r, self.initial_guess.saved_output)
         return r
 
     def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
@@ -56,16 +56,16 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
-            solver = backend.KrylovSolver(self.method, self.preconditioner)
+            solver = dolfin.KrylovSolver(self.method, self.preconditioner)
 
             if self.assemble_system:
-                rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_adj_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
+                rhs_bcs_form = dolfin.inner(dolfin.Function(self.function_space),
+                                            dFdu_adj_form.arguments()[0]) * dolfin.dx
+                A, _ = dolfin.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
-                    P, _ = backend.assemble_system(P, rhs_bcs_form, bcs)
+                    P, _ = dolfin.assemble_system(P, rhs_bcs_form, bcs)
                     solver.set_operators(A, P)
                 else:
                     solver.set_operator(A)
@@ -86,25 +86,25 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
         solver.parameters.update(self.krylov_solver_parameters)
         [bc.apply(dJdu) for bc in bcs]
 
-        adj_sol = backend.Function(self.function_space)
+        adj_sol = dolfin.Function(self.function_space)
         solver.solve(adj_sol.vector(), dJdu)
 
         adj_sol_bdy = None
         if compute_bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-                backend.action(dFdu_adj_form, adj_sol)))
+                dolfin.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         solver = self.block_helper.forward_solver
         if solver is None:
-            solver = backend.KrylovSolver(self.method, self.preconditioner)
+            solver = dolfin.KrylovSolver(self.method, self.preconditioner)
             if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs)
+                A, _ = dolfin.assemble_system(lhs, rhs, bcs)
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
-                    P, _ = backend.assemble_system(P, rhs, bcs)
+                    P, _ = dolfin.assemble_system(P, rhs, bcs)
                     solver.set_operators(A, P)
                 else:
                     solver.set_operator(A)
@@ -121,8 +121,8 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
             self.block_helper.forward_solver = solver
 
         if self.assemble_system:
-            system_assembler = backend.SystemAssembler(lhs, rhs, bcs)
-            b = backend.Function(self.function_space).vector()
+            system_assembler = dolfin.SystemAssembler(lhs, rhs, bcs)
+            b = dolfin.Function(self.function_space).vector()
             system_assembler.assemble(b)
         else:
             b = compat.assemble_adjoint_value(rhs)

@@ -1,6 +1,6 @@
 # flake8: noqa
 
-import fenics as backend
+import dolfin
 
 from .constant import Constant
 from .dirichletbc import DirichletBC

@@ -1,4 +1,4 @@
-import backend
+import dolfin
 from pyadjoint.overloaded_type import create_overloaded_object
 
 
@@ -8,5 +8,5 @@ def interpolate(*args, **kwargs):
 
     """
     kwargs.pop("ad_block_tag", None)
-    output = backend.interpolate(*args, **kwargs)
+    output = dolfin.interpolate(*args, **kwargs)
     return create_overloaded_object(output)

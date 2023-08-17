@@ -1,9 +1,9 @@
-import backend
+import dolfin
 from pyadjoint.tape import annotate_tape
 from pyadjoint import OverloadedType
 
 __all__ = []
-__HDF5File_read__ = backend.HDF5File.read
+__HDF5File_read__ = dolfin.HDF5File.read
 
 
 def HDF5File_read(self, *args, **kwargs):
@@ -17,10 +17,10 @@ def HDF5File_read(self, *args, **kwargs):
     return output
 
 
-backend.HDF5File.read = HDF5File_read
+dolfin.HDF5File.read = HDF5File_read
 
 
-__XDMFFile_read__ = backend.XDMFFile.read
+__XDMFFile_read__ = dolfin.XDMFFile.read
 
 
 def XDMFFile_read(self, *args, **kwargs):
@@ -34,9 +34,9 @@ def XDMFFile_read(self, *args, **kwargs):
     return output
 
 
-backend.XDMFFile.read = XDMFFile_read
+dolfin.XDMFFile.read = XDMFFile_read
 
-__XDMFFile_read_checkpoint__ = backend.XDMFFile.read_checkpoint
+__XDMFFile_read_checkpoint__ = dolfin.XDMFFile.read_checkpoint
 
 
 def XDMFFile_read_checkpoint(self, *args, **kwargs):
@@ -49,4 +49,4 @@ def XDMFFile_read_checkpoint(self, *args, **kwargs):
     return output
 
 
-backend.XDMFFile.read_checkpoint = XDMFFile_read_checkpoint
+dolfin.XDMFFile.read_checkpoint = XDMFFile_read_checkpoint

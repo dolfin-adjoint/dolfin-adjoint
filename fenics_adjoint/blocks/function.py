@@ -1,4 +1,4 @@
-import fenics
+import dolfin
 from pyadjoint import Block
 import numpy
 
@@ -10,16 +10,16 @@ class FunctionEvalBlock(Block):
         self.coords = coords
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        p = fenics.Point(numpy.array(self.coords))
+        p = dolfin.Point(numpy.array(self.coords))
         V = inputs[0].function_space()
         dofs = V.dofmap()
         mesh = V.mesh()
         element = V.element()
         visited = []
-        adj_vec = fenics.Function(V).vector()
+        adj_vec = dolfin.Function(V).vector()
 
         for cell_idx in range(len(mesh.cells())):
-            cell = fenics.Cell(mesh, cell_idx)
+            cell = dolfin.Cell(mesh, cell_idx)
             if cell.contains(p):
                 for ref_dof, dof in enumerate(dofs.cell_dofs(cell_idx)):
                     if dof in visited:
@@ -48,7 +48,7 @@ class FunctionSplitBlock(Block):
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
                                prepared=None):
-        return fenics.Function.sub(tlm_inputs[0], self.idx, deepcopy=False)
+        return dolfin.Function.sub(tlm_inputs[0], self.idx, deepcopy=False)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
                                    block_variable, idx,
@@ -56,7 +56,7 @@ class FunctionSplitBlock(Block):
         return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return fenics.Function.sub(inputs[0], self.idx, deepcopy=False)
+        return dolfin.Function.sub(inputs[0], self.idx, deepcopy=False)
 
 
 # TODO: This block is not valid in fenics and not correctly implemented. It should never be used.
@@ -76,7 +76,7 @@ class FunctionMergeBlock(Block):
             return
         output = self.get_outputs()[0]
         fs = output.output.function_space()
-        f = fenics.Function(fs)
+        f = dolfin.Function(fs)
         output.add_tlm_output(
             self.compat.assign(f.sub(self.idx), tlm_input)
         )
@@ -89,4 +89,4 @@ class FunctionMergeBlock(Block):
     def recompute(self):
         dep = self.get_dependencies()[0].checkpoint
         output = self.get_outputs()[0].checkpoint
-        self.compat.assign(fenics.Function.sub(output, self.idx), dep)
+        self.compat.assign(dolfin.Function.sub(output, self.idx), dep)

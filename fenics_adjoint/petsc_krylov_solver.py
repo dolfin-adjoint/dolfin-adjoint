@@ -1,17 +1,17 @@
-import backend
+import dolfin
 
 from pyadjoint.tape import annotate_tape, get_working_tape
 from dolfin_adjoint_common import compat
 
 from .blocks import PETScKrylovSolveBlock, PETScKrylovSolveBlockHelper
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
-class PETScKrylovSolver(backend.PETScKrylovSolver):
+class PETScKrylovSolver(dolfin.PETScKrylovSolver):
     def __init__(self, *args, **kwargs):
         self.ad_block_tag = kwargs.pop("ad_block_tag", None)
-        backend.PETScKrylovSolver.__init__(self, *args, **kwargs)
+        dolfin.PETScKrylovSolver.__init__(self, *args, **kwargs)
 
         A = kwargs.pop("A", None)
         method = kwargs.pop("method", "default")
@@ -46,7 +46,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
         if hasattr(self.operator, "_ad_nullspace"):
             self._ad_nullspace = self.operator._ad_nullspace
         self.block_helper = PETScKrylovSolveBlockHelper()
-        return backend.PETScKrylovSolver.set_operator(self, arg0)
+        return dolfin.PETScKrylovSolver.set_operator(self, arg0)
 
     def set_operators(self, arg0, arg1):
         self.operator = arg0
@@ -55,7 +55,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
 
         self.pc_operator = arg1
         self.block_helper = PETScKrylovSolveBlockHelper()
-        return backend.PETScKrylovSolver.set_operators(self, arg0, arg1)
+        return dolfin.PETScKrylovSolver.set_operators(self, arg0, arg1)
 
     def solve(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -75,7 +75,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
             u = x.function
             parameters = self.parameters.copy()
             nonzero_initial_guess = parameters["nonzero_initial_guess"] or False
-            ksp_options_prefix = backend.PETScKrylovSolver.ksp(self).getOptionsPrefix()
+            ksp_options_prefix = dolfin.PETScKrylovSolver.ksp(self).getOptionsPrefix()
 
             tape = get_working_tape()
             sb_kwargs = PETScKrylovSolveBlock.pop_kwargs(kwargs)
@@ -92,7 +92,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
                                           **sb_kwargs)
             tape.add_block(block)
 
-        out = backend.PETScKrylovSolver.solve(self, *args, **kwargs)
+        out = dolfin.PETScKrylovSolver.solve(self, *args, **kwargs)
 
         if annotate:
             block.add_output(u.create_block_variable())

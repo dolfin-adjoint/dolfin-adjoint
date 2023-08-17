@@ -1,9 +1,9 @@
-import backend
+import dolfin
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from .blocks import LinearVariationalSolveBlock, NonlinearVariationalSolveBlock
 
 
-class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
+class NonlinearVariationalProblem(dolfin.NonlinearVariationalProblem):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
 
@@ -19,7 +19,7 @@ class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
         self._ad_kwargs = kwargs
 
 
-class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
+class NonlinearVariationalSolver(dolfin.NonlinearVariationalSolver):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
 
@@ -67,7 +67,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
         return out
 
 
-class LinearVariationalProblem(backend.LinearVariationalProblem):
+class LinearVariationalProblem(dolfin.LinearVariationalProblem):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
 
@@ -83,7 +83,7 @@ class LinearVariationalProblem(backend.LinearVariationalProblem):
         self._ad_kwargs = kwargs
 
 
-class LinearVariationalSolver(backend.LinearVariationalSolver):
+class LinearVariationalSolver(dolfin.LinearVariationalSolver):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
 

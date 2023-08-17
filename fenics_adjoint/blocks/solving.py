@@ -1,4 +1,5 @@
 from . import GenericSolveBlock
+import dolfin
 
 
 class SolveLinearSystemBlock(GenericSolveBlock):
@@ -26,9 +27,9 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         dJdu_copy = dJdu.copy()
         bcs = self._homogenize_bcs()
         if self.assemble_system:
-            rhs_bcs_form = self.backend.inner(self.backend.Function(self.function_space),
-                                              dFdu_adj_form.arguments()[0]) * self.backend.dx
-            A, _ = self.backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
+            rhs_bcs_form = dolfin.inner(dolfin.Function(self.function_space),
+                                        dFdu_adj_form.arguments()[0]) * dolfin.dx
+            A, _ = dolfin.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
         else:
             kwargs = self.assemble_kwargs.copy()
             kwargs["bcs"] = bcs
@@ -44,24 +45,24 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         if compute_bdy:
             adj_sol_bdy = self.compat.function_from_vector(self.function_space,
                                                            dJdu_copy - self.compat.assemble_adjoint_value(
-                                                               self.backend.action(dFdu_adj_form, adj_sol)))
+                                                               dolfin.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         if self.assemble_system:
-            A, b = self.backend.assemble_system(lhs, rhs, bcs)
+            A, b = dolfin.assemble_system(lhs, rhs, bcs)
         else:
             assemble_kwargs = self.assemble_kwargs.copy()
             assemble_kwargs["bcs"] = bcs
             A = self.compat.assemble_adjoint_value(lhs, **assemble_kwargs)
-            b = self.backend.assemble(rhs)
+            b = dolfin.assemble(rhs)
             [bc.apply(b) for bc in bcs]
 
         if self.ident_zeros_tol is not None:
             A.ident_zeros(self.ident_zeros_tol)
 
-        self.backend.solve(A, func.vector(), b, *self.forward_args, **self.forward_kwargs)
+        dolfin.solve(A, func.vector(), b, *self.forward_args, **self.forward_kwargs)
         return func
 
 
@@ -111,15 +112,15 @@ class SolveVarFormBlock(GenericSolveBlock):
             bc.apply(dJdu)
 
         adj_sol = self.compat.create_function(self.function_space)
-        lu_solver_methods = self.backend.lu_solver_methods()
+        lu_solver_methods = dolfin.lu_solver_methods()
         solver_method = self.adj_args[0] if len(self.adj_args) >= 1 else "default"
         solver_method = "default" if solver_method == "lu" else solver_method
 
         if solver_method in lu_solver_methods:
-            solver = self.backend.LUSolver(solver_method)
+            solver = dolfin.LUSolver(solver_method)
             solver_parameters = self.adj_kwargs.get("lu_solver", {})
         else:
-            solver = self.backend.KrylovSolver(*self.adj_args)
+            solver = dolfin.KrylovSolver(*self.adj_args)
             solver_parameters = self.adj_kwargs.get("krylov_solver", {})
         solver.parameters.update(solver_parameters)
         solver.solve(dFdu, adj_sol.vector(), dJdu)
@@ -128,6 +129,6 @@ class SolveVarFormBlock(GenericSolveBlock):
         if compute_bdy:
             adj_sol_bdy = self.compat.function_from_vector(self.function_space,
                                                            dJdu_copy - self.compat.assemble_adjoint_value(
-                                                               self.backend.action(dFdu_adj_form, adj_sol)))
+                                                               dolfin.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy

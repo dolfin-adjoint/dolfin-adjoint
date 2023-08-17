@@ -1,9 +1,9 @@
-import backend
+import dolfin
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .blocks import SolveVarFormBlock
 
 
-class NewtonSolver(backend.NewtonSolver):
+class NewtonSolver(dolfin.NewtonSolver):
     def solve(self, *args, **kwargs):
         ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
@@ -12,7 +12,7 @@ class NewtonSolver(backend.NewtonSolver):
             tape = get_working_tape()
             factory = args[0]
             vec = args[1]
-            b = backend.as_backend_type(vec).__class__()
+            b = dolfin.as_backend_type(vec).__class__()
 
             factory.F(b=b, x=vec)
 
@@ -29,7 +29,7 @@ class NewtonSolver(backend.NewtonSolver):
             tape.add_block(block)
 
         newargs = [self] + list(args)
-        out = backend.NewtonSolver.solve(*newargs, **kwargs)
+        out = dolfin.NewtonSolver.solve(*newargs, **kwargs)
 
         if annotate:
             block.add_output(u.create_block_variable())

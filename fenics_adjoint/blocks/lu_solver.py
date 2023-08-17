@@ -1,7 +1,7 @@
-import dolfin as backend
+import dolfin
 from . import SolveLinearSystemBlock
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
 class LUSolveBlockHelper(object):
@@ -28,27 +28,27 @@ class LUSolveBlock(SolveLinearSystemBlock):
         solver = self.block_helper.adjoint_solver
         if solver is None:
             if self.assemble_system:
-                rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_adj_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
+                rhs_bcs_form = dolfin.inner(dolfin.Function(self.function_space),
+                                            dFdu_adj_form.arguments()[0]) * dolfin.dx
+                A, _ = dolfin.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
             else:
                 A = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
             if self.ident_zeros_tol is not None:
                 A.ident_zeros(self.ident_zeros_tol)
-            solver = backend.LUSolver(A, self.method)
+            solver = dolfin.LUSolver(A, self.method)
             self.block_helper.adjoint_solver = solver
 
         solver.parameters.update(self.lu_solver_parameters)
         [bc.apply(dJdu) for bc in bcs]
 
-        adj_sol = backend.Function(self.function_space)
+        adj_sol = dolfin.Function(self.function_space)
         solver.solve(adj_sol.vector(), dJdu)
 
         adj_sol_bdy = None
         if compute_bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-                backend.action(dFdu_adj_form, adj_sol)))
+                dolfin.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -56,17 +56,17 @@ class LUSolveBlock(SolveLinearSystemBlock):
         solver = self.block_helper.forward_solver
         if solver is None:
             if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs, **self.assemble_kwargs)
+                A, _ = dolfin.assemble_system(lhs, rhs, bcs, **self.assemble_kwargs)
             else:
                 A = compat.assemble_adjoint_value(lhs, **self.assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
 
-            solver = backend.LUSolver(A, self.method)
+            solver = dolfin.LUSolver(A, self.method)
             self.block_helper.forward_solver = solver
 
         if self.assemble_system:
-            system_assembler = backend.SystemAssembler(lhs, rhs, bcs)
-            b = backend.Function(self.function_space).vector()
+            system_assembler = dolfin.SystemAssembler(lhs, rhs, bcs)
+            b = dolfin.Function(self.function_space).vector()
             system_assembler.assemble(b)
         else:
             b = compat.assemble_adjoint_value(rhs)

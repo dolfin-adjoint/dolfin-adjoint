@@ -1,4 +1,4 @@
-import backend
+import dolfin
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating
 from pyadjoint.overloaded_type import create_overloaded_object
 from .blocks import ProjectBlock
@@ -16,7 +16,7 @@ def project(*args, **kwargs):
     ad_block_tag = kwargs.pop("ad_block_tag", None)
     annotate = annotate_tape(kwargs)
     with stop_annotating():
-        output = backend.project(*args, **kwargs)
+        output = dolfin.project(*args, **kwargs)
     output = create_overloaded_object(output)
 
     if annotate:

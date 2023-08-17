@@ -1,4 +1,4 @@
-import fenics
+import dolfin
 from . import SolveVarFormBlock
 
 
@@ -29,8 +29,8 @@ class LinearVariationalSolveBlock(SolveVarFormBlock):
             self.adj_args = [method, precond]
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
-        problem = fenics.LinearVariationalProblem(lhs, rhs, func, bcs, *self.problem_args, **self.problem_kwargs)
-        solver = fenics.LinearVariationalSolver(problem, *self.solver_args, **self.solver_kwargs)
+        problem = dolfin.LinearVariationalProblem(lhs, rhs, func, bcs, *self.problem_args, **self.problem_kwargs)
+        solver = dolfin.LinearVariationalSolver(problem, *self.solver_args, **self.solver_kwargs)
         solver.parameters.update(self.solver_params)
         solver.solve(*self.solve_args, **self.solve_kwargs)
         return func
@@ -74,9 +74,9 @@ class NonlinearVariationalSolveBlock(SolveVarFormBlock):
         J = self.problem_J
         if J is not None:
             J = self._replace_form(J, func)
-        problem = self.fenics.NonlinearVariationalProblem(lhs, func, bcs, J=J,
-                                                          *self.problem_args, **self.problem_kwargs)
-        solver = self.fenics.NonlinearVariationalSolver(problem, *self.solver_args, **self.solver_kwargs)
+        problem = dolfin.NonlinearVariationalProblem(lhs, func, bcs, J=J,
+                                                     *self.problem_args, **self.problem_kwargs)
+        solver = dolfin.NonlinearVariationalSolver(problem, *self.solver_args, **self.solver_kwargs)
         solver.parameters.update(self.solver_params)
         solver.solve(*self.solve_args, **self.solve_kwargs)
         return func

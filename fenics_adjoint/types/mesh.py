@@ -1,4 +1,4 @@
-import backend
+import dolfin
 import sys
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
@@ -12,11 +12,11 @@ __all__ = ['Mesh', 'BoundaryMesh', 'SubMesh'] + overloaded_meshes
 
 
 @register_overloaded_type
-class Mesh(OverloadedType, backend.Mesh):
+class Mesh(OverloadedType, dolfin.Mesh):
     def __init__(self, *args, **kwargs):
         # Calling constructor
         super(Mesh, self).__init__(*args, **kwargs)
-        backend.Mesh.__init__(self, *args, **kwargs)
+        dolfin.Mesh.__init__(self, *args, **kwargs)
 
         self._ad_coordinate_space = None
 
@@ -29,12 +29,12 @@ class Mesh(OverloadedType, backend.Mesh):
 
     def _ad_function_space(self):
         if self._ad_coordinate_space is None:
-            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+            self._ad_coordinate_space = dolfin.FunctionSpace(self, self.ufl_coordinate_element())
         return self._ad_coordinate_space
 
 
 @register_overloaded_type
-class BoundaryMesh(FloatingType, backend.BoundaryMesh):
+class BoundaryMesh(FloatingType, dolfin.BoundaryMesh):
     def __init__(self, *args, **kwargs):
         # Calling constructor
         super(BoundaryMesh, self).__init__(*args,
@@ -43,7 +43,7 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
                                            _ad_floating_active=True,
                                            annotate=kwargs.pop("annotate", True),
                                            **kwargs)
-        backend.BoundaryMesh.__init__(self, *args, **kwargs)
+        dolfin.BoundaryMesh.__init__(self, *args, **kwargs)
         self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
@@ -55,7 +55,7 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
 
     def _ad_function_space(self):
         if self._ad_coordinate_space is None:
-            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+            self._ad_coordinate_space = dolfin.FunctionSpace(self, self.ufl_coordinate_element())
         return self._ad_coordinate_space
 
 
@@ -77,7 +77,7 @@ def overloaded_mesh(mesh_class):
 
         def _ad_function_space(self):
             if self._ad_coordinate_space is None:
-                self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+                self._ad_coordinate_space = dolfin.FunctionSpace(self, self.ufl_coordinate_element())
             return self._ad_coordinate_space
 
     return OverloadedMesh
@@ -85,12 +85,12 @@ def overloaded_mesh(mesh_class):
 
 thismod = sys.modules[__name__]
 for name in overloaded_meshes:
-    setattr(thismod, name, overloaded_mesh(getattr(backend, name)))
+    setattr(thismod, name, overloaded_mesh(getattr(dolfin, name)))
     mod = getattr(thismod, name)
-    mod.__doc__ = getattr(backend, name).init.__doc__
+    mod.__doc__ = getattr(dolfin, name).init.__doc__
 
-SubMesh = overloaded_mesh(backend.SubMesh)
-SubMesh.__doc__ = backend.SubMesh.__doc__
+SubMesh = overloaded_mesh(dolfin.SubMesh)
+SubMesh.__doc__ = dolfin.SubMesh.__doc__
 
 
 def overloaded_create(mesh_class):
@@ -108,11 +108,11 @@ def overloaded_create(mesh_class):
 
 custom_meshes = ["UnitDiscMesh", "SphericalShellMesh", "UnitTriangleMesh", "BoxMesh", "RectangleMesh"]
 for name in custom_meshes:
-    mesh_type = getattr(backend, name)
+    mesh_type = getattr(dolfin, name)
     mesh_type.create = overloaded_create(mesh_type)
 
 
-__backend_ALE_move = backend.ALE.move
+__backend_ALE_move = dolfin.ALE.move
 
 
 def move(mesh, vector, **kwargs):
@@ -131,7 +131,7 @@ def move(mesh, vector, **kwargs):
     return output
 
 
-backend.ALE.move = move
+dolfin.ALE.move = move
 
 
 class ALEMoveBlock(Block):
@@ -177,7 +177,7 @@ class ALEMoveBlock(Block):
         mesh = self.get_dependencies()[0].saved_output
         vector = self.get_dependencies()[1].saved_output
 
-        backend.ALE.move(mesh, vector, annotate=False)
+        dolfin.ALE.move(mesh, vector, annotate=False)
 
         self.get_outputs()[0].checkpoint = mesh._ad_create_checkpoint()
 
@@ -194,7 +194,7 @@ class BoundaryMeshBlock(Block):
         if adj_value is None:
             return
 
-        f = backend.Function(backend.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
+        f = dolfin.Function(dolfin.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
         f.vector()[:] = adj_value
         adj_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
         self.get_dependencies()[0].add_adj_output(adj_value.vector())
@@ -214,7 +214,7 @@ class BoundaryMeshBlock(Block):
         if hessian_input is None:
             return
 
-        f = backend.Function(backend.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
+        f = dolfin.Function(dolfin.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
         f.vector()[:] = hessian_input
         hessian_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
         self.get_dependencies()[0].add_hessian_output(hessian_value.vector())

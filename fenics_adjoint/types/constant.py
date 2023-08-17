@@ -1,4 +1,4 @@
-import backend
+import dolfin
 from dolfin_adjoint_common import compat
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
@@ -10,16 +10,16 @@ from fenics_adjoint.blocks import ConstantAssignBlock
 
 import numpy
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
 @register_overloaded_type
-class Constant(OverloadedType, backend.Constant):
+class Constant(OverloadedType, dolfin.Constant):
     def __init__(self, *args, **kwargs):
         ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         super(Constant, self).__init__(*args, **kwargs)
-        backend.Constant.__init__(self, *args, **kwargs)
+        dolfin.Constant.__init__(self, *args, **kwargs)
 
         if annotate and len(args) > 0:
             value = args[0]
@@ -49,7 +49,7 @@ class Constant(OverloadedType, backend.Constant):
             tape.add_block(block)
 
         with stop_annotating():
-            ret = backend.Constant.assign(self, *args, **kwargs)
+            ret = dolfin.Constant.assign(self, *args, **kwargs)
 
         if annotate:
             block.add_output(self.create_block_variable())
@@ -71,13 +71,12 @@ class Constant(OverloadedType, backend.Constant):
             # TODO: Should the default be 0 constant here or return just None?
             return Constant(numpy.zeros(self.ufl_shape))
         value = gather(value)
-        value = compat.constant_function_firedrake_compat(value)
         return constant_from_values(self, value)
 
     def _ad_function_space(self, mesh):
         element = self.ufl_element()
         fs_element = element.reconstruct(cell=mesh.ufl_cell())
-        return backend.FunctionSpace(mesh, fs_element)
+        return dolfin.FunctionSpace(mesh, fs_element)
 
     def _ad_create_checkpoint(self):
         return constant_from_values(self)
@@ -96,7 +95,7 @@ class Constant(OverloadedType, backend.Constant):
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        dst.assign(backend.Constant(numpy.reshape(src[offset:offset + dst.value_size()], dst.ufl_shape)))
+        dst.assign(dolfin.Constant(numpy.reshape(src[offset:offset + dst.value_size()], dst.ufl_shape)))
         offset += dst.value_size()
         return dst, offset
 

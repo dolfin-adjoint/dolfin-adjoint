@@ -1,4 +1,4 @@
-import backend
+import dolfin
 import ufl_legacy as ufl
 
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
@@ -48,7 +48,7 @@ def solve(*args, **kwargs):
         tape.add_block(block)
 
     with stop_annotating():
-        output = backend.solve(*args, **kwargs)
+        output = dolfin.solve(*args, **kwargs)
 
     if annotate:
         if hasattr(args[1], "create_block_variable"):

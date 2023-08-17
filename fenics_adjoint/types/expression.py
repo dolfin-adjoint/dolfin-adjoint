@@ -1,4 +1,4 @@
-import backend
+import dolfin
 
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.block import Block
@@ -72,7 +72,7 @@ class BaseExpression(FloatingType):
         if mesh not in self._cached_fs:
             element = self.ufl_element()
             fs_element = element.reconstruct(cell=mesh.ufl_cell())
-            self._cached_fs[mesh] = backend.FunctionSpace(mesh, fs_element)
+            self._cached_fs[mesh] = dolfin.FunctionSpace(mesh, fs_element)
         return self._cached_fs[mesh]
 
     def save_attribute(self, key, value):
@@ -108,7 +108,7 @@ class BaseExpression(FloatingType):
                 self.save_attribute(k, v)
 
 
-class CompiledExpression(BaseExpression, backend.CompiledExpression):
+class CompiledExpression(BaseExpression, dolfin.CompiledExpression):
     def __init__(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         BaseExpression.__init__(self, *args, **kwargs, annotate=annotate)
@@ -119,7 +119,7 @@ class CompiledExpression(BaseExpression, backend.CompiledExpression):
                 if hasattr(v, "_cpp_object"):
                     kwargs[k] = v._cpp_object
 
-        backend.CompiledExpression.__init__(self, *args, **kwargs)
+        dolfin.CompiledExpression.__init__(self, *args, **kwargs)
 
         for k, val in kwargs_copy.items():
             if hasattr(self._cpp_object, k):
@@ -129,34 +129,34 @@ class CompiledExpression(BaseExpression, backend.CompiledExpression):
         if isinstance(v, OverloadedType):
             if hasattr(v, "_cpp_object"):
                 v = v._cpp_object
-        backend.CompiledExpression.__setattr__(self, k, v)
+        dolfin.CompiledExpression.__setattr__(self, k, v)
 
 
-class UserExpression(BaseExpression, backend.UserExpression):
+class UserExpression(BaseExpression, dolfin.UserExpression):
     def __init__(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         BaseExpression.__init__(self, *args, **kwargs, annotate=annotate)
-        backend.UserExpression.__init__(self, *args, **kwargs)
+        dolfin.UserExpression.__init__(self, *args, **kwargs)
 
         for k, v in kwargs.items():
             self.save_attribute(k, v)
 
     def _ad_backend_setattr_(self, k, v):
-        backend.UserExpression.__setattr__(self, k, v)
+        dolfin.UserExpression.__setattr__(self, k, v)
 
 
-class Expression(BaseExpression, backend.Expression):
+class Expression(BaseExpression, dolfin.Expression):
     def __init__(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         BaseExpression.__init__(self, *args, **kwargs, annotate=annotate)
-        backend.Expression.__init__(self, *args, **kwargs)
+        dolfin.Expression.__init__(self, *args, **kwargs)
 
         for k, v in kwargs.items():
             if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
                 self.save_attribute(k, v)
 
     def _ad_backend_setattr_(self, k, v):
-        backend.Expression.__setattr__(self, k, v)
+        dolfin.Expression.__setattr__(self, k, v)
 
 
 class ExpressionBlock(Block):
@@ -189,19 +189,19 @@ class ExpressionBlock(Block):
             if adj_output is None:
                 adj_output = 0.0
 
-            interp = backend.interpolate(self.expression.user_defined_derivatives[c], V)
-            if isinstance(c, (backend.Constant, AdjFloat)):
+            interp = dolfin.interpolate(self.expression.user_defined_derivatives[c], V)
+            if isinstance(c, (dolfin.Constant, AdjFloat)):
                 adj_output += adj_input.inner(interp.vector())
             else:
                 vec = adj_input * interp.vector()
-                adj_func = backend.Function(V, vec)
+                adj_func = dolfin.Function(V, vec)
 
                 num_sub_spaces = V.num_sub_spaces()
                 if num_sub_spaces > 1:
                     for i in range(num_sub_spaces):
-                        adj_output += backend.interpolate(adj_func.sub(i), c.function_space()).vector()
+                        adj_output += dolfin.interpolate(adj_func.sub(i), c.function_space()).vector()
                 else:
-                    adj_output += backend.interpolate(adj_func, c.function_space()).vector()
+                    adj_output += dolfin.interpolate(adj_func, c.function_space()).vector()
         return adj_output
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
@@ -268,19 +268,19 @@ class ExpressionBlock(Block):
 
                 # TODO: Seems we can only project and not interpolate ufl.algebra.Product in dolfin.
                 #       Consider the difference and which actually makes sense here.
-                interp = backend.project(tlm_input * second_deriv, V)
-                if isinstance(c1, (backend.Constant, AdjFloat)):
+                interp = dolfin.project(tlm_input * second_deriv, V)
+                if isinstance(c1, (dolfin.Constant, AdjFloat)):
                     hessian_output += adj_input.inner(interp.vector())
                 else:
                     vec = adj_input * interp.vector()
-                    hessian_func = backend.Function(V, vec)
+                    hessian_func = dolfin.Function(V, vec)
 
                     num_sub_spaces = V.num_sub_spaces()
                     if num_sub_spaces > 1:
                         for i in range(num_sub_spaces):
-                            hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
+                            hessian_output += dolfin.interpolate(hessian_func.sub(i), c1.function_space()).vector()
                     else:
-                        hessian_output += backend.interpolate(hessian_func, c1.function_space()).vector()
+                        hessian_output += dolfin.interpolate(hessian_func, c1.function_space()).vector()
 
         for hessian_pair in hessian_inputs:
             if hessian_output is None:
@@ -288,19 +288,19 @@ class ExpressionBlock(Block):
             hessian_input = hessian_pair[0]
             V = hessian_pair[1]
 
-            interp = backend.interpolate(first_deriv, V)
-            if isinstance(c1, (backend.Constant, AdjFloat)):
+            interp = dolfin.interpolate(first_deriv, V)
+            if isinstance(c1, (dolfin.Constant, AdjFloat)):
                 hessian_output += hessian_input.inner(interp.vector())
             else:
                 vec = hessian_input * interp.vector()
-                hessian_func = backend.Function(V, vec)
+                hessian_func = dolfin.Function(V, vec)
 
                 num_sub_spaces = V.num_sub_spaces()
                 if num_sub_spaces > 1:
                     for i in range(num_sub_spaces):
-                        hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
+                        hessian_output += dolfin.interpolate(hessian_func.sub(i), c1.function_space()).vector()
                 else:
-                    hessian_output += backend.interpolate(hessian_func, c1.function_space()).vector()
+                    hessian_output += dolfin.interpolate(hessian_func, c1.function_space()).vector()
         return hessian_output
 
     def recompute_component(self, inputs, block_variable, idx, prepared):

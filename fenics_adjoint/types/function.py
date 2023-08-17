@@ -1,4 +1,4 @@
-import backend
+import dolfin
 import ufl_legacy as ufl
 
 from pyadjoint.overloaded_type import (FloatingType,
@@ -15,11 +15,11 @@ import numpy
 from fenics_adjoint.blocks import (FunctionEvalBlock, FunctionMergeBlock,
                                    FunctionSplitBlock, FunctionAssignBlock)
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
 @register_overloaded_type
-class Function(FloatingType, backend.Function):
+class Function(FloatingType, dolfin.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args,
                                        block_class=kwargs.pop("block_class",
@@ -35,7 +35,7 @@ class Function(FloatingType, backend.Function):
                                                               None),
                                        annotate=kwargs.pop("annotate", True),
                                        **kwargs)
-        backend.Function.__init__(self, *args, **kwargs)
+        dolfin.Function.__init__(self, *args, **kwargs)
 
     @classmethod
     def _ad_init_object(cls, obj):
@@ -44,7 +44,7 @@ class Function(FloatingType, backend.Function):
     def copy(self, *args, **kwargs):
         ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
-        c = backend.Function.copy(self, *args, **kwargs)
+        c = dolfin.Function.copy(self, *args, **kwargs)
         func = create_overloaded_object(c)
 
         if annotate:
@@ -85,7 +85,7 @@ class Function(FloatingType, backend.Function):
         ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         if deepcopy:
-            ret = create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
+            ret = create_overloaded_object(dolfin.Function.sub(self, i, deepcopy, **kwargs))
             if annotate:
                 fa = FunctionAssigner(ret.function_space(), self.function_space())
                 block = FunctionAssignerBlock(fa, Enlist(self), ad_block_tag=ad_block_tag)
@@ -110,10 +110,10 @@ class Function(FloatingType, backend.Function):
         from .function_assigner import FunctionAssigner, FunctionAssignerBlock
         ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
-        num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
+        num_sub_spaces = dolfin.Function.function_space(self).num_sub_spaces()
         if not annotate:
             if deepcopy:
-                ret = tuple(create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
+                ret = tuple(create_overloaded_object(dolfin.Function.sub(self, i, deepcopy, **kwargs))
                             for i in range(num_sub_spaces))
             else:
                 ret = tuple(compat.create_function(self, i)
@@ -122,7 +122,7 @@ class Function(FloatingType, backend.Function):
             ret = []
             fs = []
             for i in range(num_sub_spaces):
-                f = create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
+                f = create_overloaded_object(dolfin.Function.sub(self, i, deepcopy, **kwargs))
                 fs.append(f.function_space())
                 ret.append(f)
             fa = FunctionAssigner(fs, self.function_space())
@@ -156,7 +156,7 @@ class Function(FloatingType, backend.Function):
             tape.add_block(block)
 
         with stop_annotating():
-            out = backend.Function.__call__(self, *args, **kwargs)
+            out = dolfin.Function.__call__(self, *args, **kwargs)
 
         if annotate:
             out = create_overloaded_object(out)
@@ -165,7 +165,7 @@ class Function(FloatingType, backend.Function):
         return out
 
     def vector(self):
-        vec = backend.Function.vector(self)
+        vec = dolfin.Function.vector(self)
         vec.function = self
         return vec
 
@@ -176,22 +176,22 @@ class Function(FloatingType, backend.Function):
 
         if riesz_representation == "l2":
             return create_overloaded_object(
-                compat.function_from_vector(self.function_space(), value, cls=backend.Function)
+                compat.function_from_vector(self.function_space(), value, cls=dolfin.Function)
             )
         elif riesz_representation == "L2":
             ret = compat.create_function(self.function_space())
-            u = backend.TrialFunction(self.function_space())
-            v = backend.TestFunction(self.function_space())
-            M = backend.assemble(backend.inner(u, v) * backend.dx)
+            u = dolfin.TrialFunction(self.function_space())
+            v = dolfin.TestFunction(self.function_space())
+            M = dolfin.assemble(dolfin.inner(u, v) * dolfin.dx)
             compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif riesz_representation == "H1":
             ret = compat.create_function(self.function_space())
-            u = backend.TrialFunction(self.function_space())
-            v = backend.TestFunction(self.function_space())
-            M = backend.assemble(
-                backend.inner(u, v) * backend.dx + backend.inner(
-                    backend.grad(u), backend.grad(v)) * backend.dx)
+            u = dolfin.TrialFunction(self.function_space())
+            v = dolfin.TestFunction(self.function_space())
+            M = dolfin.assemble(
+                dolfin.inner(u, v) * dolfin.dx + dolfin.inner(
+                    dolfin.grad(u), dolfin.grad(v)) * dolfin.dx)
             compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif callable(riesz_representation):
@@ -215,14 +215,14 @@ class Function(FloatingType, backend.Function):
 
     @no_annotations
     def _ad_mul(self, other):
-        r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self * other)
+        r = get_overloaded_class(dolfin.Function)(self.function_space())
+        dolfin.Function.assign(r, self * other)
         return r
 
     @no_annotations
     def _ad_add(self, other):
-        r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self + other)
+        r = get_overloaded_class(dolfin.Function)(self.function_space())
+        dolfin.Function.assign(r, self + other)
         return r
 
     def _ad_dot(self, other, options=None):
@@ -231,12 +231,12 @@ class Function(FloatingType, backend.Function):
         if riesz_representation == "l2":
             return self.vector().inner(other.vector())
         elif riesz_representation == "L2":
-            return backend.assemble(backend.inner(self, other) * backend.dx)
+            return dolfin.assemble(dolfin.inner(self, other) * dolfin.dx)
         elif riesz_representation == "H1":
-            return backend.assemble(
-                (backend.inner(self, other) + backend.inner(backend.grad(self),
-                                                            backend.grad(
-                                                                other))) * backend.dx)
+            return dolfin.assemble(
+                (dolfin.inner(self, other) + dolfin.inner(dolfin.grad(self),
+                                                          dolfin.grad(
+                    other))) * dolfin.dx)
         else:
             raise NotImplementedError(
                 "Unknown Riesz representation %s" % riesz_representation)
@@ -261,8 +261,8 @@ class Function(FloatingType, backend.Function):
         return m_a.tolist()
 
     def _ad_copy(self):
-        r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self)
+        r = get_overloaded_class(dolfin.Function)(self.function_space())
+        dolfin.Function.assign(r, self)
         return r
 
     def _ad_dim(self):

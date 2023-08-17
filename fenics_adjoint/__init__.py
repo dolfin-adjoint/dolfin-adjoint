@@ -15,41 +15,6 @@ the key functions of dolfin to achieve its degree of automation.
 
 # flake8: noqa
 
-import pyadjoint
-__version__ = pyadjoint.__version__
-__author__ = 'Sebastian Kenji Mitusch'
-__credits__ = []
-__license__ = 'LGPL-3'
-__maintainer__ = 'Sebastian Kenji Mitusch'
-__email__ = 'sebastkm@math.uio.no'
-
-import sys
-if 'backend' not in sys.modules:
-    import fenics
-    sys.modules['backend'] = fenics
-backend = sys.modules['backend']
-
-from .assembly import assemble, assemble_system
-from .solving import solve
-from .projection import project
-from .interpolation import interpolate
-from .shapead_transformations import (transfer_from_boundary,
-                                      transfer_to_boundary)
-
-from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
-
-if backend.__name__ != "firedrake":
-    from .newton_solver import NewtonSolver
-    from .lu_solver import LUSolver
-    from .krylov_solver import KrylovSolver
-    from .petsc_krylov_solver import PETScKrylovSolver
-    from .types import *
-    from .refine import refine
-    from .system_assembly import *
-
-
-from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
-                                 LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,
@@ -59,6 +24,32 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
                        MoolaOptimizationProblem, print_optimization_methods,
                        stop_annotating)
+from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
+                                 LinearVariationalProblem, LinearVariationalSolver)
+from .system_assembly import *
+from .refine import refine
+from .types import *
+from .petsc_krylov_solver import PETScKrylovSolver
+from .krylov_solver import KrylovSolver
+from .lu_solver import LUSolver
+from .newton_solver import NewtonSolver
+from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
+from .shapead_transformations import (transfer_from_boundary,
+                                      transfer_to_boundary)
+from .interpolation import interpolate
+from .projection import project
+from .solving import solve
+from .assembly import assemble, assemble_system
+import pyadjoint
+__version__ = pyadjoint.__version__
+__author__ = 'Sebastian Kenji Mitusch'
+__credits__ = []
+__license__ = 'LGPL-3'
+__maintainer__ = 'Sebastian Kenji Mitusch'
+__email__ = 'sebastkm@math.uio.no'
+
+import sys
+import dolfin
 
 
 set_working_tape(Tape())

@@ -1,6 +1,6 @@
-import backend
+import dolfin
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 __all__ = []
 
@@ -10,4 +10,4 @@ def _ad_to_list(self):
     return compat.gather(self).tolist()
 
 
-backend.GenericVector._ad_to_list = _ad_to_list
+dolfin.GenericVector._ad_to_list = _ad_to_list

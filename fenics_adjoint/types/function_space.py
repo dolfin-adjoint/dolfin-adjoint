@@ -1,6 +1,6 @@
-import backend
+import dolfin
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
 extract_subfunction = compat.extract_subfunction

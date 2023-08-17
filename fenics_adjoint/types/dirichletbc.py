@@ -1,4 +1,4 @@
-import backend
+import dolfin
 
 from dolfin_adjoint_common import compat
 
@@ -6,13 +6,13 @@ from pyadjoint.tape import no_annotations
 from pyadjoint.overloaded_type import FloatingType
 from fenics_adjoint.blocks import DirichletBCBlock
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 # TODO: Might need/want some way of creating a new DirichletBCBlock if DirichletBC is assigned
 #       new boundary values/function.
 
 
-class DirichletBC(FloatingType, backend.DirichletBC):
+class DirichletBC(FloatingType, dolfin.DirichletBC):
     def __init__(self, *args, **kwargs):
         super(DirichletBC, self).__init__(*args, **kwargs)
 
@@ -27,7 +27,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
                               **kwargs)
 
         # Call backend constructor after popped AD specific keyword args.
-        backend.DirichletBC.__init__(self, *args, **kwargs)
+        dolfin.DirichletBC.__init__(self, *args, **kwargs)
 
     @no_annotations
     def apply(self, *args, **kwargs):
@@ -35,7 +35,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
             if not hasattr(arg, "bcs"):
                 arg.bcs = []
             arg.bcs.append(self)
-        return backend.DirichletBC.apply(self, *args, **kwargs)
+        return dolfin.DirichletBC.apply(self, *args, **kwargs)
 
     def _ad_create_checkpoint(self):
         deps = self.block.get_dependencies()

@@ -1,12 +1,12 @@
-import backend
+import dolfin
 from dolfin_adjoint_common import compat
 
 from pyadjoint.tape import stop_annotating
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
-_backend_SystemAssembler_assemble = backend.SystemAssembler.assemble
-_backend_SystemAssembler_init = backend.SystemAssembler.__init__
+_backend_SystemAssembler_assemble = dolfin.SystemAssembler.assemble
+_backend_SystemAssembler_init = dolfin.SystemAssembler.__init__
 
 
 def SystemAssembler_init(self, *args, **kwargs):
@@ -33,5 +33,5 @@ def SystemAssembler_assemble(self, *args, **kwargs):
     return out
 
 
-backend.SystemAssembler.assemble = SystemAssembler_assemble
-backend.SystemAssembler.__init__ = SystemAssembler_init
+dolfin.SystemAssembler.assemble = SystemAssembler_assemble
+dolfin.SystemAssembler.__init__ = SystemAssembler_init

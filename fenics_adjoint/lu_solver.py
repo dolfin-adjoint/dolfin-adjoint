@@ -1,16 +1,16 @@
-import backend
+import dolfin
 from pyadjoint.tape import annotate_tape, get_working_tape
 from dolfin_adjoint_common import compat
 
 from .blocks import LUSolveBlock, LUSolveBlockHelper
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
-class LUSolver(backend.LUSolver):
+class LUSolver(dolfin.LUSolver):
     def __init__(self, *args, **kwargs):
         self.ad_block_tag = kwargs.pop("ad_block_tag", None)
-        backend.LUSolver.__init__(self, *args, **kwargs)
+        dolfin.LUSolver.__init__(self, *args, **kwargs)
 
         A = kwargs.pop("A", None)
         method = kwargs.pop("method", "default")
@@ -34,7 +34,7 @@ class LUSolver(backend.LUSolver):
     def set_operator(self, arg0):
         self.operator = arg0
         self.block_helper = LUSolveBlockHelper()
-        return backend.LUSolver.set_operator(self, arg0)
+        return dolfin.LUSolver.set_operator(self, arg0)
 
     def solve(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -64,7 +64,7 @@ class LUSolver(backend.LUSolver):
                                  **sb_kwargs)
             tape.add_block(block)
 
-        out = backend.LUSolver.solve(self, *args, **kwargs)
+        out = dolfin.LUSolver.solve(self, *args, **kwargs)
 
         if annotate:
             block.add_output(u.create_block_variable())

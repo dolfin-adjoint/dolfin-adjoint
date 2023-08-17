@@ -1,4 +1,5 @@
 from . import SolveVarFormBlock
+import dolfin
 
 
 class ProjectBlock(SolveVarFormBlock):
@@ -6,11 +7,11 @@ class ProjectBlock(SolveVarFormBlock):
         mesh = kwargs.pop("mesh", None)
         if mesh is None:
             mesh = V.mesh()
-        dx = self.backend.dx(mesh)
-        w = self.backend.TestFunction(V)
-        Pv = self.backend.TrialFunction(V)
-        a = self.backend.inner(w, Pv) * dx
-        L = self.backend.inner(w, v) * dx
+        dx = dolfin.dx(mesh)
+        w = dolfin.TestFunction(V)
+        Pv = dolfin.TrialFunction(V)
+        a = dolfin.inner(w, Pv) * dx
+        L = dolfin.inner(w, v) * dx
 
         # Pop "function" kwarg if present.
         # This relies on the return value of project == function if given.

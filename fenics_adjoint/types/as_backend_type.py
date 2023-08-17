@@ -1,13 +1,13 @@
-import fenics
+import dolfin
 
 
 def as_backend_type(A):
-    out = fenics.as_backend_type(A)
+    out = dolfin.as_backend_type(A)
     out._ad_original_ref = A
     return out
 
 
-__set_nullspace = fenics.cpp.la.PETScMatrix.set_nullspace
+__set_nullspace = dolfin.cpp.la.PETScMatrix.set_nullspace
 
 
 def set_nullspace(self, nullspace):
@@ -15,14 +15,14 @@ def set_nullspace(self, nullspace):
     __set_nullspace(self, nullspace)
 
 
-fenics.cpp.la.PETScMatrix.set_nullspace = set_nullspace
+dolfin.cpp.la.PETScMatrix.set_nullspace = set_nullspace
 
 
-class VectorSpaceBasis(fenics.VectorSpaceBasis):
+class VectorSpaceBasis(dolfin.VectorSpaceBasis):
     def __init__(self, *args, **kwargs):
         super(VectorSpaceBasis, self).__init__(*args, **kwargs)
         self._ad_orthogonalized = False
 
     def orthogonalize(self, vector):
-        fenics.VectorSpaceBasis.orthogonalize(self, vector)
+        dolfin.VectorSpaceBasis.orthogonalize(self, vector)
         self._ad_orthogonalized = True

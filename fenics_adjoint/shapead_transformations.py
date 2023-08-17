@@ -1,4 +1,4 @@
-import backend
+import dolfin
 import numpy
 from pyadjoint.overloaded_type import create_overloaded_object
 from pyadjoint.block import Block
@@ -10,7 +10,7 @@ def SyncSum(vec):
 
     Each vec vector must have the same dimension for each MPI process """
 
-    comm = backend.MPI.comm_world
+    comm = dolfin.MPI.comm_world
     NormalsAllProcs = numpy.zeros(comm.Get_size() * len(vec), dtype=vec.dtype)
     comm.Allgather(vec, NormalsAllProcs)
 
@@ -29,26 +29,26 @@ def mesh_to_boundary(v, b_mesh):
 
     # We use a Dof->Vertex mapping to create a global
     # array with all DOF values ordered by mesh vertices
-    DofToVert = backend.dof_to_vertex_map(v.function_space())
+    DofToVert = dolfin.dof_to_vertex_map(v.function_space())
     VGlobal = numpy.zeros(v.vector().size())
 
     vec = v.vector().get_local()
     for i in range(len(vec)):
-        Vert = backend.MeshEntity(mesh, 0, DofToVert[i])
+        Vert = dolfin.MeshEntity(mesh, 0, DofToVert[i])
         globalIndex = Vert.global_index()
         VGlobal[globalIndex] = vec[i]
     VGlobal = SyncSum(VGlobal)
 
     # Use the inverse mapping to se the DOF values of a boundary
     # function
-    surface_space = backend.FunctionSpace(b_mesh, "CG", 1)
-    surface_function = backend.Function(surface_space)
+    surface_space = dolfin.FunctionSpace(b_mesh, "CG", 1)
+    surface_function = dolfin.Function(surface_space)
     mapa = b_mesh.entity_map(0)
-    DofToVert = backend.dof_to_vertex_map(backend.FunctionSpace(b_mesh, "CG", 1))
+    DofToVert = dolfin.dof_to_vertex_map(dolfin.FunctionSpace(b_mesh, "CG", 1))
 
     LocValues = surface_function.vector().get_local()
     for i in range(len(LocValues)):
-        VolVert = backend.MeshEntity(mesh, 0, mapa[int(DofToVert[i])])
+        VolVert = dolfin.MeshEntity(mesh, 0, mapa[int(DofToVert[i])])
         GlobalIndex = VolVert.global_index()
         LocValues[i] = VGlobal[GlobalIndex]
 
@@ -62,21 +62,21 @@ def boundary_to_mesh(f, mesh):
     volume vector with same values on boundary but zero in volume
     """
     b_mesh = f.function_space().mesh()
-    SpaceV = backend.FunctionSpace(mesh, "CG", 1)
-    SpaceB = backend.FunctionSpace(b_mesh, "CG", 1)
+    SpaceV = dolfin.FunctionSpace(mesh, "CG", 1)
+    SpaceB = dolfin.FunctionSpace(b_mesh, "CG", 1)
 
-    F = backend.Function(SpaceV)
+    F = dolfin.Function(SpaceV)
     GValues = numpy.zeros(F.vector().size())
 
     map = b_mesh.entity_map(0)  # Vertex map from boundary mesh to parent mesh
-    d2v = backend.dof_to_vertex_map(SpaceB)
-    v2d = backend.vertex_to_dof_map(SpaceV)
+    d2v = dolfin.dof_to_vertex_map(SpaceB)
+    v2d = dolfin.vertex_to_dof_map(SpaceV)
 
     dof = SpaceV.dofmap()
     imin, imax = dof.ownership_range()
 
     for i in range(f.vector().local_size()):
-        GVertID = backend.Vertex(b_mesh, d2v[i]).index()  # Local Vertex ID for given dof on boundary mesh
+        GVertID = dolfin.Vertex(b_mesh, d2v[i]).index()  # Local Vertex ID for given dof on boundary mesh
         PVertID = map[GVertID]  # Local Vertex ID of parent mesh
         PDof = v2d[PVertID]  # Dof on parent mesh
         value = f.vector()[i]  # Value on local processor
@@ -95,14 +95,14 @@ def vector_boundary_to_mesh(boundary_func, mesh):
     values are 0). This function is only meant to be called internally in
     pyadjoint, or for verification purposes.
     """
-    V = backend.VectorFunctionSpace(mesh, "CG", 1)
+    V = dolfin.VectorFunctionSpace(mesh, "CG", 1)
     vb_split = boundary_func.split(deepcopy=True)
     v_vol = []
     for vb in vb_split:
         v_vol.append(boundary_to_mesh(vb, mesh))
-    scalar_to_vec = backend.FunctionAssigner(V, [v.function_space()
-                                                 for v in v_vol])
-    v_out = backend.Function(V)
+    scalar_to_vec = dolfin.FunctionAssigner(V, [v.function_space()
+                                                for v in v_vol])
+    v_out = dolfin.Function(V)
     scalar_to_vec.assign(v_out, v_vol)
     return v_out
 
@@ -112,10 +112,10 @@ def vector_mesh_to_boundary(func, b_mesh):
     v_b = []
     for v in v_split:
         v_b.append(mesh_to_boundary(v, b_mesh))
-    Vb = backend.VectorFunctionSpace(b_mesh, "CG", 1)
-    vb_out = backend.Function(Vb)
-    scalar_to_vec = backend.FunctionAssigner(Vb, [v.function_space() for
-                                                  v in v_b])
+    Vb = dolfin.VectorFunctionSpace(b_mesh, "CG", 1)
+    vb_out = dolfin.Function(Vb)
+    scalar_to_vec = dolfin.FunctionAssigner(Vb, [v.function_space() for
+                                                 v in v_b])
     scalar_to_vec.assign(vb_out, v_b)
     return vb_out
 
@@ -152,7 +152,7 @@ class SurfaceTransferBlock(Block):
             return
         W = self.get_outputs()[0].output.function_space()
         b_mesh = self.get_dependencies()[1].output
-        adj_value = backend.Function(W)
+        adj_value = dolfin.Function(W)
         adj_value.vector()[:] = adj_input
         adj_output = vector_mesh_to_boundary(adj_value, b_mesh)
         self.get_dependencies()[0].add_adj_output(adj_output.vector())
@@ -173,7 +173,7 @@ class SurfaceTransferBlock(Block):
             return
         W = self.get_outputs()[0].output.function_space()
         mesh = self.get_dependencies()[1].output
-        hessian_value = backend.Function(W)
+        hessian_value = dolfin.Function(W)
         hessian_value.vector()[:] = hessian_input
         hessian_output = vector_mesh_to_boundary(hessian_value, mesh)
         self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
@@ -219,7 +219,7 @@ class VolumeTransferBlock(Block):
             return
         W = self.get_outputs()[0].output.function_space()
         b_mesh = self.get_dependencies()[1].output
-        adj_value = backend.Function(W, adj_input)
+        adj_value = dolfin.Function(W, adj_input)
         adj_output = vector_boundary_to_mesh(adj_value, b_mesh)
         self.get_dependencies()[0].add_adj_output(adj_output.vector())
 
@@ -239,7 +239,7 @@ class VolumeTransferBlock(Block):
             return
         W = self.get_outputs()[0].output.function_space()
         mesh = self.get_dependencies()[1].output
-        hessian_value = backend.Function(W, hessian_input)
+        hessian_value = dolfin.Function(W, hessian_input)
         hessian_output = vector_boundary_to_mesh(hessian_value, mesh)
         self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
 

@@ -1,4 +1,4 @@
-import backend
+import dolfin
 from pyadjoint.overloaded_type import create_overloaded_object
 from pyadjoint.tape import stop_annotating
 
@@ -8,6 +8,6 @@ def refine(*args, **kwargs):
     """
     kwargs.pop("ad_block_tag", None)
     with stop_annotating():
-        output = backend.refine(*args, **kwargs)
+        output = dolfin.refine(*args, **kwargs)
     overloaded = create_overloaded_object(output)
     return overloaded

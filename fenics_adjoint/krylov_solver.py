@@ -1,17 +1,17 @@
-import backend
+import dolfin
 
 from pyadjoint.tape import annotate_tape, get_working_tape
 from dolfin_adjoint_common import compat
 
 from .blocks import KrylovSolveBlock, KrylovSolveBlockHelper
 
-compat = compat.compat(backend)
+compat = compat.compat(dolfin)
 
 
-class KrylovSolver(backend.KrylovSolver):
+class KrylovSolver(dolfin.KrylovSolver):
     def __init__(self, *args, **kwargs):
         self.ad_block_tag = kwargs.pop("ad_block_tag", None)
-        backend.KrylovSolver.__init__(self, *args, **kwargs)
+        dolfin.KrylovSolver.__init__(self, *args, **kwargs)
 
         A = kwargs.pop("A", None)
         method = kwargs.pop("method", "default")
@@ -41,13 +41,13 @@ class KrylovSolver(backend.KrylovSolver):
     def set_operator(self, arg0):
         self.operator = arg0
         self.block_helper = KrylovSolveBlockHelper()
-        return backend.KrylovSolver.set_operator(self, arg0)
+        return dolfin.KrylovSolver.set_operator(self, arg0)
 
     def set_operators(self, arg0, arg1):
         self.operator = arg0
         self.pc_operator = arg1
         self.block_helper = KrylovSolveBlockHelper()
-        return backend.KrylovSolver.set_operators(self, arg0, arg1)
+        return dolfin.KrylovSolver.set_operators(self, arg0, arg1)
 
     def solve(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -81,7 +81,7 @@ class KrylovSolver(backend.KrylovSolver):
                                      **sb_kwargs)
             tape.add_block(block)
 
-        out = backend.KrylovSolver.solve(self, *args, **kwargs)
+        out = dolfin.KrylovSolver.solve(self, *args, **kwargs)
 
         if annotate:
             block.add_output(u.create_block_variable())

@@ -1,4 +1,4 @@
-import backend
+import dolfin
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object
 from pyadjoint.enlisting import Enlist
@@ -8,15 +8,15 @@ from fenics_adjoint.blocks import FunctionAssignerBlock
 __all__ = ["FunctionAssigner"]
 
 
-class FunctionAssigner(backend.FunctionAssigner):
+class FunctionAssigner(dolfin.FunctionAssigner):
 
     def __init__(self, *args, **kwargs):
         super(FunctionAssigner, self).__init__(*args, **kwargs)
         self.input_spaces = Enlist(args[1])
         self.output_spaces = Enlist(args[0])
-        self.adj_assigner = backend.FunctionAssigner(args[1],
-                                                     args[0],
-                                                     **kwargs)
+        self.adj_assigner = dolfin.FunctionAssigner(args[1],
+                                                    args[0],
+                                                    **kwargs)
 
     def assign(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -37,7 +37,7 @@ class FunctionAssigner(backend.FunctionAssigner):
             tape.add_block(block)
 
         with stop_annotating():
-            ret = backend.FunctionAssigner.assign(self, outputs.delist(), inputs.delist(), **kwargs)
+            ret = dolfin.FunctionAssigner.assign(self, outputs.delist(), inputs.delist(), **kwargs)
 
         if annotate:
             for output in outputs:

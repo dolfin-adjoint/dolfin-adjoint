@@ -1,4 +1,4 @@
-import backend
+import dolfin
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.overloaded_type import create_overloaded_object
 from .blocks import AssembleBlock
@@ -13,7 +13,7 @@ def assemble(*args, **kwargs):
     ad_block_tag = kwargs.pop("ad_block_tag", None)
     annotate = annotate_tape(kwargs)
     with stop_annotating():
-        output = backend.assemble(*args, **kwargs)
+        output = dolfin.assemble(*args, **kwargs)
     if "keep_diagonal" in kwargs:
         output.keep_diagonal = kwargs["keep_diagonal"]
 
@@ -44,7 +44,7 @@ def assemble_system(*args, **kwargs):
     A_form = args[0]
     b_form = args[1]
 
-    A, b = backend.assemble_system(*args, **kwargs)
+    A, b = dolfin.assemble_system(*args, **kwargs)
     if "keep_diagonal" in kwargs:
         A.keep_diagonal = kwargs["keep_diagonal"]
     if "bcs" in kwargs:
