@@ -1,10 +1,6 @@
 import dolfin
 from pyadjoint import Block
 
-from fenics_adjoint.compat import compat
-
-compat = compat(dolfin)
-
 
 class FunctionAssignerBlock(Block):
     def __init__(self, assigner, inputs, ad_block_tag=None):

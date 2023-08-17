@@ -1,25 +1,8 @@
 from pyadjoint import Block, OverloadedType
 import numpy
-
+import dolfin
 from pyadjoint.reduced_functional_numpy import gather
-
-
-def constant_from_values(constant, values=None):
-    """Returns a new Constant with `constant.values()` while preserving `constant.ufl_shape`.
-
-    If the optional argument `values` is provided, then `values` will be the values of the
-    new Constant instead, while still preserving the ufl_shape of `constant`.
-
-    Args:
-        constant: A constant with the ufl_shape to preserve.
-        values (numpy.array): An optional argument to use instead of constant.values().
-
-    Returns:
-        Constant: The created Constant of the same type as `constant`.
-
-    """
-    values = constant.values() if values is None else values
-    return type(constant)(numpy.reshape(values, constant.ufl_shape))
+from fenics_adjoint.utils import constant_from_values
 
 
 class ConstantAssignBlock(Block):
@@ -61,7 +44,7 @@ class ConstantAssignBlock(Block):
             values = numpy.zeros(self.value.shape)
             for i, tlm_input in enumerate(tlm_inputs):
                 values.flat[self.dependency_to_index[i]] = tlm_input
-        elif self.compat.isconstant(values):
+        elif isinstance(values, dolfin.Constant):
             values = values.values()
         return constant_from_values(block_variable.output, values)
 
@@ -78,6 +61,6 @@ class ConstantAssignBlock(Block):
             for i, inp in enumerate(inputs):
                 self.value[self.dependency_to_index[i]] = inp
             values = self.value
-        elif self.compat.isconstant(values):
+        elif isinstance(values, dolfin.Constant):
             values = values.values()
         return constant_from_values(block_variable.output, values)

@@ -1,21 +1,28 @@
 import dolfin
-import ufl_legacy as ufl
-
-from pyadjoint.overloaded_type import (FloatingType,
-                                       create_overloaded_object,
-                                       register_overloaded_type,
-                                       get_overloaded_class)
-from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
-    no_annotations
-
-from dolfin_adjoint_common import compat
-
-from pyadjoint.enlisting import Enlist
 import numpy
-from fenics_adjoint.blocks import (FunctionEvalBlock, FunctionMergeBlock,
-                                   FunctionSplitBlock, FunctionAssignBlock)
+import ufl_legacy as ufl
+from pyadjoint import AdjFloat, Block, OverloadedType
+from pyadjoint.enlisting import Enlist
+from pyadjoint.overloaded_type import (FloatingType, create_overloaded_object,
+                                       get_overloaded_class,
+                                       register_overloaded_type)
+from pyadjoint.tape import (annotate_tape, get_working_tape, no_annotations,
+                            stop_annotating)
+from ufl_legacy.corealg.traversal import traverse_unique_terminals
+from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 
-compat = compat.compat(dolfin)
+from fenics_adjoint.blocks import (FunctionEvalBlock, FunctionMergeBlock,
+                                   FunctionSplitBlock)
+from fenics_adjoint.utils import function_from_vector, gather, linalg_solve, create_function
+from .constant import create_constant
+
+
+def type_cast_function(obj, cls):
+    """Type casts Function object `obj` to an instance of `cls`.
+
+    Useful when converting backend.Function to overloaded Function.
+    """
+    return cls(obj.function_space(), obj._cpp_object)
 
 
 @register_overloaded_type
@@ -39,7 +46,7 @@ class Function(FloatingType, dolfin.Function):
 
     @classmethod
     def _ad_init_object(cls, obj):
-        return compat.type_cast_function(obj, cls)
+        return type_cast_function(obj, cls)
 
     def copy(self, *args, **kwargs):
         ad_block_tag = kwargs.pop("ad_block_tag", None)
@@ -103,7 +110,7 @@ class Function(FloatingType, dolfin.Function):
                     "output_block_class": FunctionMergeBlock,
                     "_ad_outputs": [self],
                 }
-            ret = compat.create_function(self, i, **extra_kwargs)
+            ret = create_function(self, i, **extra_kwargs)
         return ret
 
     def split(self, deepcopy=False, **kwargs):
@@ -116,12 +123,13 @@ class Function(FloatingType, dolfin.Function):
                 ret = tuple(create_overloaded_object(dolfin.Function.sub(self, i, deepcopy, **kwargs))
                             for i in range(num_sub_spaces))
             else:
-                ret = tuple(compat.create_function(self, i)
+                ret = tuple(create_function(self, i)
                             for i in range(num_sub_spaces))
         elif deepcopy:
             ret = []
             fs = []
             for i in range(num_sub_spaces):
+
                 f = create_overloaded_object(dolfin.Function.sub(self, i, deepcopy, **kwargs))
                 fs.append(f.function_space())
                 ret.append(f)
@@ -133,14 +141,14 @@ class Function(FloatingType, dolfin.Function):
                 block.add_output(output.block_variable)
             ret = tuple(ret)
         else:
-            ret = tuple(compat.create_function(self,
-                                               i,
-                                               block_class=FunctionSplitBlock,
-                                               _ad_floating_active=True,
-                                               _ad_args=[self, i],
-                                               _ad_output_args=[i],
-                                               output_block_class=FunctionMergeBlock,
-                                               _ad_outputs=[self])
+            ret = tuple(Function(self,
+                                 i,
+                                 block_class=FunctionSplitBlock,
+                                 _ad_floating_active=True,
+                                 _ad_args=[self, i],
+                                 _ad_output_args=[i],
+                                 output_block_class=FunctionMergeBlock,
+                                 _ad_outputs=[self])
                         for i in range(num_sub_spaces))
         return ret
 
@@ -176,23 +184,23 @@ class Function(FloatingType, dolfin.Function):
 
         if riesz_representation == "l2":
             return create_overloaded_object(
-                compat.function_from_vector(self.function_space(), value, cls=dolfin.Function)
+                function_from_vector(self.function_space(), value)
             )
         elif riesz_representation == "L2":
-            ret = compat.create_function(self.function_space())
+            ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
             M = dolfin.assemble(dolfin.inner(u, v) * dolfin.dx)
-            compat.linalg_solve(M, ret.vector(), value)
+            linalg_solve(M, ret.vector(), value)
             return ret
         elif riesz_representation == "H1":
-            ret = compat.create_function(self.function_space())
+            ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
             M = dolfin.assemble(
                 dolfin.inner(u, v) * dolfin.dx + dolfin.inner(
                     dolfin.grad(u), dolfin.grad(v)) * dolfin.dx)
-            compat.linalg_solve(M, ret.vector(), value)
+            linalg_solve(M, ret.vector(), value)
             return ret
         elif callable(riesz_representation):
             return riesz_representation(value)
@@ -256,7 +264,7 @@ class Function(FloatingType, dolfin.Function):
             m_v = m.vector()
         else:
             m_v = m
-        m_a = compat.gather(m_v)
+        m_a = gather(m_v)
 
         return m_a.tolist()
 
@@ -303,3 +311,156 @@ class Function(FloatingType, dolfin.Function):
 
     def __deepcopy__(self, memodict={}):
         return self.copy(deepcopy=True)
+
+
+class FunctionAssignBlock(Block):
+    def __init__(self, func, other, ad_block_tag=None):
+        super().__init__(ad_block_tag=ad_block_tag)
+        self.other = None
+        self.expr = None
+        if isinstance(other, OverloadedType):
+            self.add_dependency(other, no_duplicates=True)
+        elif isinstance(other, float) or isinstance(other, int):
+            other = AdjFloat(other)
+            self.add_dependency(other, no_duplicates=True)
+        elif not (isinstance(other, float) or isinstance(other, int)):
+            # Assume that this is a point-wise evaluated UFL expression (firedrake only)
+            for op in traverse_unique_terminals(other):
+                if isinstance(op, OverloadedType):
+                    self.add_dependency(op, no_duplicates=True)
+            self.expr = other
+
+    def _replace_with_saved_output(self):
+        if self.expr is None:
+            return None
+
+        replace_map = {}
+        for dep in self.get_dependencies():
+            replace_map[dep.output] = dep.saved_output
+        return ufl.replace(self.expr, replace_map)
+
+    def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
+        V = self.get_outputs()[0].output.function_space()
+        adj_input_func = function_from_vector(V, adj_inputs[0])
+
+        if self.expr is None:
+            return adj_input_func
+
+        expr = self._replace_with_saved_output()
+        return expr, adj_input_func
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
+                               prepared=None):
+        if self.expr is None:
+            if isinstance(block_variable.output, AdjFloat):
+                try:
+                    # Adjoint of a broadcast is just a sum
+                    return adj_inputs[0].sum()
+                except AttributeError:
+                    # Catch the case where adj_inputs[0] is just a float
+                    return adj_inputs[0]
+            elif isinstance(block_variable.output, dolfin.Constant):
+                R = block_variable.output._ad_function_space(prepared.function_space().mesh())
+                return self._adj_assign_constant(prepared, R)
+            else:
+                adj_output = dolfin.Function(
+                    block_variable.output.function_space())
+                adj_output.assign(prepared)
+                return adj_output.vector()
+        else:
+            # Linear combination
+            expr, adj_input_func = prepared
+            adj_output = dolfin.Function(adj_input_func.function_space())
+            if not isinstance(block_variable.output, dolfin.Constant):
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, block_variable.saved_output, adj_input_func)
+                )
+                adj_output.assign(diff_expr)
+            else:
+                mesh = adj_output.function_space().mesh()
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(
+                        expr,
+                        block_variable.saved_output,
+                        create_constant(1., domain=mesh)
+                    )
+                )
+                adj_output.assign(diff_expr)
+                return adj_output.vector().inner(adj_input_func.vector())
+
+            if isinstance(block_variable.output, dolfin.Constant):
+                R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
+                return self._adj_assign_constant(adj_output, R)
+            else:
+                return adj_output.vector()
+
+    def _adj_assign_constant(self, adj_output, constant_fs):
+        r = dolfin.Function(constant_fs)
+        shape = r.ufl_shape
+        if shape == () or shape[0] == 1:
+            # Scalar Constant
+            r.vector()[:] = adj_output.vector().sum()
+        else:
+            # We assume the shape of the constant == shape of the output function if not scalar.
+            # This assumption is due to FEniCS not supporting products with non-scalar constants in assign.
+            values = []
+            for i in range(shape[0]):
+                values.append(adj_output.sub(i, deepcopy=True).vector().sum())
+            r.assign(dolfin.Constant(values))
+        return r.vector()
+
+    def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
+        if self.expr is None:
+            return None
+
+        return self._replace_with_saved_output()
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
+                               prepared=None):
+        if self.expr is None:
+            return tlm_inputs[0]
+
+        expr = prepared
+        dudm = dolfin.Function(block_variable.output.function_space())
+        dudmi = dolfin.Function(block_variable.output.function_space())
+        for dep in self.get_dependencies():
+            if dep.tlm_value:
+                dudmi.assign(ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, dep.saved_output,
+                                   dep.tlm_value)))
+                dudm.vector().axpy(1.0, dudmi.vector())
+
+        return dudm
+
+    def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs,
+                                 relevant_dependencies):
+        return self.prepare_evaluate_adj(inputs, hessian_inputs,
+                                         relevant_dependencies)
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
+                                   block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        # Current implementation assumes lincom in hessian,
+        # otherwise we need second-order derivatives here.
+        return self.evaluate_adj_component(inputs, hessian_inputs,
+                                           block_variable, idx, prepared)
+
+    def prepare_recompute_component(self, inputs, relevant_outputs):
+        if self.expr is None:
+            return None
+        return self._replace_with_saved_output()
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        if self.expr is None:
+            prepared = inputs[0]
+        output = dolfin.Function(block_variable.output.function_space())
+        output.assign(prepared)
+        return output
+
+    def __str__(self):
+        rhs = self.expr or self.other or self.get_dependencies()[0].output
+        if isinstance(rhs, ufl.core.expr.Expr):
+            rhs_str = ufl2unicode(rhs)
+        else:
+            rhs_str = str(rhs)
+        return f"assign({rhs_str})"

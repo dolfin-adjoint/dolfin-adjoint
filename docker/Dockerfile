@@ -51,12 +51,17 @@ RUN python3 -m pip install --no-cache cython && \
     python3 -m pip install --no-cache ipopt
 
 # Install moola
-RUN /bin/bash -l -c "python3 -m pip install --no-cache git+https://github.com/funsim/moola@${MOOLA_BRANCH}"
+RUN python3 -m pip install --no-cache git+https://github.com/funsim/moola@${MOOLA_BRANCH}
 
 # Install dolfin-adjoint
 COPY . /src/dolfin-adjoint
 WORKDIR /src/dolfin-adjoint
-RUN /bin/bash -l -c "python3 -m pip install --no-cache -e .[test]"
+RUN python3 -m pip install --no-cache -e .[test]
+
+# Install ROL
+ENV LD_LIBRARY_PATH=/usr/lib/python3/dist-packages/roltrilinos/lib/:${LD_LIBRARY_PATH}
+RUN python3 -m pip install roltrilinos && \
+    python3 -m pip install ROL
 
 # Run tests
 WORKDIR /src/dolfin-adjoint

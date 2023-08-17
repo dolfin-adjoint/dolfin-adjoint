@@ -33,13 +33,14 @@ from .petsc_krylov_solver import PETScKrylovSolver
 from .krylov_solver import KrylovSolver
 from .lu_solver import LUSolver
 from .newton_solver import NewtonSolver
-from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
+from .ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 from .shapead_transformations import (transfer_from_boundary,
                                       transfer_to_boundary)
 from .interpolation import interpolate
 from .projection import project
 from .solving import solve
 from .assembly import assemble, assemble_system
+
 import pyadjoint
 __version__ = pyadjoint.__version__
 __author__ = 'Sebastian Kenji Mitusch'

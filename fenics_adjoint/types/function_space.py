@@ -1,8 +1,30 @@
 import dolfin
-from dolfin_adjoint_common import compat
-compat = compat.compat(dolfin)
+
+backend_fs_sub = dolfin.FunctionSpace.sub
 
 
-extract_subfunction = compat.extract_subfunction
+def _fs_sub(self, i):
+    V = backend_fs_sub(self, i)
+    V._ad_parent_space = self
+    return V
 
-__all__ = ["extract_subfunction"]
+
+dolfin.FunctionSpace.sub = _fs_sub
+
+dolfin.backend_fs_collapse = dolfin.FunctionSpace.collapse
+
+
+def _fs_collapse(self, collapsed_dofs=False):
+    """Overloaded FunctionSpace.collapse to limit the amount of MPI communicator created.
+    """
+    if not hasattr(self, "_ad_collapsed_space"):
+        # Create collapsed space
+        self._ad_collapsed_space = dolfin.backend_fs_collapse(self, collapsed_dofs=True)
+
+    if collapsed_dofs:
+        return self._ad_collapsed_space
+    else:
+        return self._ad_collapsed_space[0]
+
+
+dolfin.FunctionSpace.collapse = _fs_collapse

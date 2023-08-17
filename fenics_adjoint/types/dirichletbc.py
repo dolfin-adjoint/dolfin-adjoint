@@ -1,12 +1,9 @@
 import dolfin
 
-from dolfin_adjoint_common import compat
 
 from pyadjoint.tape import no_annotations
 from pyadjoint.overloaded_type import FloatingType
 from fenics_adjoint.blocks import DirichletBCBlock
-
-compat = compat.compat(dolfin)
 
 # TODO: Might need/want some way of creating a new DirichletBCBlock if DirichletBC is assigned
 #       new boundary values/function.

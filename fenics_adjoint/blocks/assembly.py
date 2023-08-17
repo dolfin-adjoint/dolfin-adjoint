@@ -1,7 +1,17 @@
-import ufl_legacy as ufl
-from ufl_legacy.formatting.ufl2unicode import ufl2unicode
-from pyadjoint import Block, create_overloaded_object
 import dolfin
+import ufl_legacy as ufl
+from pyadjoint import Block, create_overloaded_object
+from ufl_legacy.formatting.ufl2unicode import ufl2unicode
+from fenics_adjoint.utils import extract_mesh_from_form
+
+
+def assemble_adjoint_value(*args, **kwargs):
+    """Wrapper that assembles a matrix with boundary conditions"""
+    bcs = kwargs.pop("bcs", ())
+    result = dolfin.assemble(*args, **kwargs)
+    for bc in bcs:
+        bc.apply(result)
+    return result
 
 
 class AssembleBlock(Block):
@@ -30,7 +40,7 @@ class AssembleBlock(Block):
             if dform is None:
                 dc = dolfin.TestFunction(space)
                 dform = dolfin.derivative(form, c_rep, dc)
-            dform_vector = self.compat.assemble_adjoint_value(dform)
+            dform_vector = assemble_adjoint_value(dform)
             # Return a Vector scaled by the scalar `adj_input`
             return dform_vector * adj_input, dform
         elif arity_form == 1:
@@ -46,10 +56,10 @@ class AssembleBlock(Block):
             if not isinstance(c_rep, dolfin.SpatialCoordinate):
                 # Symbolically compute: (dform/dc_rep)^* * adj_input
                 adj_output = dolfin.action(dolfin.adjoint(dform), adj_input)
-                adj_output = self.compat.assemble_adjoint_value(adj_output)
+                adj_output = assemble_adjoint_value(adj_output)
             else:
                 # Get PETSc matrix
-                dform_mat = self.compat.assemble_adjoint_value(dform).petscmat
+                dform_mat = assemble_adjoint_value(dform).petscmat
                 # Action of the adjoint (Hermitian transpose)
                 adj_output = dolfin.Function(space)
                 with adj_input.dat.vec_ro as v_vec:
@@ -79,7 +89,7 @@ class AssembleBlock(Block):
         from ufl_legacy.algorithms.analysis import extract_arguments
         arity_form = len(extract_arguments(form))
 
-        if isinstance(c, self.compat.ExpressionType):
+        if isinstance(c, dolfin.function.expression.BaseExpression):
             # Create a FunctionSpace from self.form and Expression.
             # And then make a TestFunction from this space.
             mesh = self.form.ufl_domain().ufl_cargo()
@@ -87,15 +97,15 @@ class AssembleBlock(Block):
             dc = dolfin.TestFunction(V)
 
             dform = dolfin.derivative(form, c_rep, dc)
-            output = self.compat.assemble_adjoint_value(dform)
+            output = assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
 
-        if self.compat.isconstant(c):
-            mesh = self.compat.extract_mesh_from_form(self.form)
+        if isinstance(c, dolfin.Constant):
+            mesh = extract_mesh_from_form(self.form)
             space = c._ad_function_space(mesh)
         elif isinstance(c, dolfin.Function):
             space = c.function_space()
-        elif isinstance(c, self.compat.MeshType):
+        elif isinstance(c, dolfin.Mesh):
             c_rep = dolfin.SpatialCoordinate(c_rep)
             space = c._ad_function_space()
 
@@ -116,14 +126,14 @@ class AssembleBlock(Block):
 
             if tlm_value is None:
                 continue
-            if isinstance(c_rep, self.compat.MeshType):
+            if isinstance(c_rep, dolfin.Mesh):
                 X = dolfin.SpatialCoordinate(c_rep)
                 dform += dolfin.derivative(form, X, tlm_value)
             else:
                 dform += dolfin.derivative(form, c_rep, tlm_value)
         if not isinstance(dform, float):
             dform = ufl.algorithms.expand_derivatives(dform)
-            dform = self.compat.assemble_adjoint_value(dform)
+            dform = assemble_adjoint_value(dform)
             if arity_form == 1 and dform != 0:
                 # Then dform is a Vector
                 dform = dform.function
@@ -144,15 +154,15 @@ class AssembleBlock(Block):
         c1 = block_variable.output
         c1_rep = block_variable.saved_output
 
-        if self.compat.isconstant(c1):
-            mesh = self.compat.extract_mesh_from_form(form)
+        if isinstance(c1, dolfin.Constant):
+            mesh = extract_mesh_from_form(form)
             space = c1._ad_function_space(mesh)
         elif isinstance(c1, dolfin.Function):
             space = c1.function_space()
-        elif isinstance(c1, self.compat.ExpressionType):
+        elif isinstance(c1, dolfin.function.expression.BaseExpression):
             mesh = form.ufl_domain().ufl_cargo()
             space = c1._ad_function_space(mesh)
-        elif isinstance(c1, self.compat.MeshType):
+        elif isinstance(c1, dolfin.Mesh):
             c1_rep = dolfin.SpatialCoordinate(c1)
             space = c1._ad_function_space()
         else:
@@ -168,7 +178,7 @@ class AssembleBlock(Block):
             if tlm_input is None:
                 continue
 
-            if isinstance(c2_rep, self.compat.MeshType):
+            if isinstance(c2_rep, dolfin.Mesh):
                 X = dolfin.SpatialCoordinate(c2_rep)
                 ddform += dolfin.derivative(dform, X, tlm_input)
             else:
@@ -179,7 +189,7 @@ class AssembleBlock(Block):
             if not ddform.empty():
                 hessian_outputs += self.compute_action_adjoint(adj_input, arity_form, dform=ddform)[0]
 
-        if isinstance(c1, self.compat.ExpressionType):
+        if isinstance(c1, dolfin.function.expression.BaseExpression):
             return [(hessian_outputs, space)]
         else:
             return hessian_outputs

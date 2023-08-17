@@ -1,12 +1,6 @@
 import dolfin
 
 
-def as_backend_type(A):
-    out = dolfin.as_backend_type(A)
-    out._ad_original_ref = A
-    return out
-
-
 __set_nullspace = dolfin.cpp.la.PETScMatrix.set_nullspace
 
 

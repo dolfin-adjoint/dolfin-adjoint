@@ -78,7 +78,7 @@ class FunctionMergeBlock(Block):
         fs = output.output.function_space()
         f = dolfin.Function(fs)
         output.add_tlm_output(
-            self.compat.assign(f.sub(self.idx), tlm_input)
+            dolfin.assign(f.sub(self.idx), tlm_input)
         )
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
@@ -89,4 +89,4 @@ class FunctionMergeBlock(Block):
     def recompute(self):
         dep = self.get_dependencies()[0].checkpoint
         output = self.get_outputs()[0].checkpoint
-        self.compat.assign(dolfin.Function.sub(output, self.idx), dep)
+        dolfin.assign(dolfin.Function.sub(output, self.idx), dep)

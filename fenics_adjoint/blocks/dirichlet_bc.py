@@ -1,6 +1,49 @@
+import dolfin
 import ufl_legacy as ufl
 from pyadjoint import Block, OverloadedType, no_annotations
-import dolfin
+
+from fenics_adjoint.utils import function_from_vector, extract_subfunction
+
+
+def create_bc(bc, value=None, homogenize=None):
+    """Create a new bc object from an existing one.
+
+    :arg bc: The :class:`~.DirichletBC` to clone.
+    :arg value: A new value to use.
+    :arg homogenize: If True, return a homogeneous version of the bc.
+
+    One cannot provide both ``value`` and ``homogenize``, but
+    should provide at least one.
+    """
+    if value is None and homogenize is None:
+        raise ValueError("No point cloning a bc if you're not changing its values")
+    if value is not None and homogenize is not None:
+        raise ValueError("Cannot provide both value and homogenize")
+    if homogenize:
+        bc = dolfin.DirichletBC(bc)
+        bc.homogenize()
+        return bc
+    try:
+        # FIXME: Not perfect handling of Initialization, wait for development in dolfin.DirichletBC
+        bc = dolfin.DirichletBC(dolfin.FunctionSpace(bc.function_space()),
+                                value, *bc.domain_args)
+    except AttributeError:
+        from IPython import embed
+
+        bc = dolfin.DirichletBC(dolfin.FunctionSpace(bc.function_space()),
+                                value,
+                                bc.sub_domain, method=bc.method())
+    return bc
+
+
+def extract_bc_subvector(value, Vtarget, bc):
+    """Extract from value (a function in a mixed space), the sub
+    function corresponding to the part of the space bc applies
+    to.  Vtarget is the target (collapsed) space."""
+    assigner = dolfin.FunctionAssigner(Vtarget, dolfin.FunctionSpace(bc.function_space()))
+    output = dolfin.Function(Vtarget)
+    assigner.assign(output, extract_subfunction(value, dolfin.FunctionSpace(bc.function_space())))
+    return output.vector()
 
 
 class DirichletBCBlock(Block):
@@ -21,7 +64,7 @@ class DirichletBCBlock(Block):
             #       Probably just a BC without dependencies?
             #       In which case we might not even need this Block?
             # Update: What if someone runs: `DirichletBC(V, g*g, "on_boundary")`.
-            #         In this case the backend will project the product onto V.
+            #         In this case the dolfin will project the product onto V.
             #         But we will have to annotate the product somehow.
             #         One solution would be to do a check and add a ProjectBlock before the DirichletBCBlock.
             #         (Either by actually running our project or by "manually" inserting a project block).
@@ -33,12 +76,12 @@ class DirichletBCBlock(Block):
         adj_inputs = adj_inputs[0]
         adj_output = None
         for adj_input in adj_inputs:
-            if self.compat.isconstant(c):
+            if isinstance(c, dolfin.Constant):
                 adj_value = dolfin.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 if self.function_space != self.parent_space:
-                    vec = self.compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
-                    adj_value = self.compat.function_from_vector(self.collapsed_space, vec)
+                    vec = extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                    adj_value = function_from_vector(self.collapsed_space, vec)
 
                 if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
                     r = adj_value.vector().sum()
@@ -65,11 +108,11 @@ class DirichletBCBlock(Block):
                 # the BC and the Function.
                 adj_value = dolfin.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
-                r = self.compat.extract_bc_subvector(adj_value, c.function_space(), bc)
-            elif isinstance(c, self.compat.Expression):
+                r = extract_bc_subvector(adj_value, c.function_space(), bc)
+            elif isinstance(c, dolfin.Expression):
                 adj_value = dolfin.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
-                output = self.compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                output = extract_bc_subvector(adj_value, self.collapsed_space, bc)
                 r = [[output, self.collapsed_space]]
             if adj_output is None:
                 adj_output = r
@@ -91,7 +134,7 @@ class DirichletBCBlock(Block):
             # TODO: This is gonna crash for dirichletbcs with multiple dependencies (can't add two bcs)
             #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
             #       dvalue = tlm_f * g + f * tlm_g). Right now we can only handle value=f => dvalue = tlm_f.
-            m = self.compat.create_bc(bc, value=tlm_input)
+            m = create_bc(bc, value=tlm_input)
         return m
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,

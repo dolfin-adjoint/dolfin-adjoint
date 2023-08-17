@@ -1,16 +1,21 @@
 import dolfin
-from dolfin_adjoint_common import compat
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
-from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
+import numpy
+from pyadjoint.overloaded_type import (OverloadedType,
+                                       create_overloaded_object,
+                                       register_overloaded_type)
 from pyadjoint.reduced_functional_numpy import gather
+from pyadjoint.tape import annotate_tape, get_working_tape, stop_annotating
 
-from dolfin_adjoint_common.blocks.constant import constant_from_values
 
 from fenics_adjoint.blocks import ConstantAssignBlock
+from fenics_adjoint.utils import constant_from_values
 
-import numpy
 
-compat = compat.compat(dolfin)
+def create_constant(*args, **kwargs):
+    """Initialise a fenics_adjoint.Constant object and return it."""
+    # Dolfin constants do not have domains
+    _ = kwargs.pop("domain", None)
+    return Constant(*args, **kwargs)
 
 
 @register_overloaded_type

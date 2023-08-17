@@ -1,10 +1,9 @@
 import dolfin
 from pyadjoint.tape import annotate_tape, get_working_tape
-from dolfin_adjoint_common import compat
+
 
 from .blocks import LUSolveBlock, LUSolveBlockHelper
-
-compat = compat.compat(dolfin)
+from fenics_adjoint.utils import MatrixTypes
 
 
 class LUSolver(dolfin.LUSolver):
@@ -16,10 +15,10 @@ class LUSolver(dolfin.LUSolver):
         method = kwargs.pop("method", "default")
 
         next_arg_idx = 0
-        if len(args) > 0 and isinstance(args[0], compat.MatrixType):
+        if len(args) > 0 and isinstance(args[0], MatrixTypes):
             A = args[0]
             next_arg_idx = 1
-        elif len(args) > 1 and isinstance(args[1], compat.MatrixType):
+        elif len(args) > 1 and isinstance(args[1], MatrixTypes):
             A = args[1]
             next_arg_idx = 2
 

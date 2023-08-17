@@ -1,12 +1,11 @@
-from __future__ import print_function
-import pytest
-import numpy
-
 pytest.importorskip("fenics")
 pytest.importorskip("ROL")
 
 from fenics import *
 from fenics_adjoint import *
+
+import pytest
+
 
 
 def setup_problem(n=20):
@@ -26,16 +25,16 @@ def setup_problem(n=20):
     u = Function(V, name='State')
     v = TestFunction(V)
 
-    F = (inner(grad(u), grad(v)) - f*v)*dx
+    F = (inner(grad(u), grad(v)) - f * v) * dx
     bc = DirichletBC(V, 0.0, "on_boundary")
     solve(F == 0, u, bc)
 
     w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3)
-    d = 1/(2*pi**2)
+    d = 1 / (2 * pi**2)
     d = Expression("d*w", d=d, w=w, degree=3)
 
     alpha = Constant(1e-3)
-    J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+    J = assemble((0.5 * inner(u - d, u - d)) * dx + alpha / 2 * f**2 * dx)
     control = Control(f)
 
     rf = ReducedFunctional(J, control)
@@ -89,11 +88,12 @@ def test_constraint_works_sensibly(contype):
 
     class EqVolumeConstraint(EqualityConstraint):
         """A class that enforces the volume constraint g(a) = volume - a*dx = 0."""
+
         def __init__(self, volume, W):
-            self.volume  = float(volume)
+            self.volume = float(volume)
             # The derivative of the constraint g(x) is constant (it is the diagonal of the lumped mass matrix for the control function space), so let's assemble it here once.
             # This is also useful in rapidly calculating the integral each time without re-assembling.
-            self.smass  = assemble(TestFunction(W) * Constant(1) * dx)
+            self.smass = assemble(TestFunction(W) * Constant(1) * dx)
 
         def function(self, m):
             integral = self.smass.inner(m[0].vector())
@@ -103,7 +103,7 @@ def test_constraint_works_sensibly(contype):
             result.assign(self.smass.inner(-dm.vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = self.smass * (-1.*dp.values()[0])
+            result.vector()[:] = self.smass * (-1. * dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
             result.vector()[:] = 0.0
@@ -113,11 +113,12 @@ def test_constraint_works_sensibly(contype):
 
     class IneqVolumeConstraint(InequalityConstraint):
         """A class that enforces the volume constraint g(a) = volume - a*dx >= 0."""
+
         def __init__(self, volume, W):
-            self.volume  = float(volume)
+            self.volume = float(volume)
             # The derivative of the constraint g(x) is constant (it is the diagonal of the lumped mass matrix for the control function space), so let's assemble it here once.
             # This is also useful in rapidly calculating the integral each time without re-assembling.
-            self.smass  = assemble(TestFunction(W) * Constant(1) * dx)
+            self.smass = assemble(TestFunction(W) * Constant(1) * dx)
 
         def function(self, m):
             integral = self.smass.inner(m[0].vector())
@@ -127,14 +128,13 @@ def test_constraint_works_sensibly(contype):
             result.assign(self.smass.inner(-dm.vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = self.smass * (-1.*dp.values()[0])
+            result.vector()[:] = self.smass * (-1. * dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
             result.vector()[:] = 0.0
 
         def output_workspace(self):
             return Constant(0.0)
-
 
     params = {
         'General': {
@@ -163,7 +163,6 @@ def test_constraint_works_sensibly(contype):
     econ = EqVolumeConstraint(vol, V)
     icon = IneqVolumeConstraint(vol, V)
     bounds = (interpolate(Constant(0.0), V), interpolate(Constant(0.7), V))
-
 
     if contype == "eq":
         print("Run with equality constraint")
@@ -194,12 +193,11 @@ def test_constraint_works_sensibly(contype):
     res0 = obj.checkGradient(x, v)
     res1 = obj.checkHessVec(x, v)
     for i in range(1, len(res0)):
-        assert res0[i][3] < 0.15 * res0[i-1][3]
+        assert res0[i][3] < 0.15 * res0[i - 1][3]
     assert all(r[3] < 1e-10 for r in res1)
 
-
     print("Check constraint gradient and hessian")
-    if len(econ)>0:
+    if len(econ) > 0:
         jv = emul[0].clone()
         jv.dat[0].assign(1.0)
         res0 = econ[0].checkApplyJacobian(x, v, jv, 5, 1)
@@ -210,7 +208,7 @@ def test_constraint_works_sensibly(contype):
         assert res1 < 1e-10
         assert all(r[3] < 1e-10 for r in res2)
 
-    if len(icon)>0:
+    if len(icon) > 0:
         jv = imul[0].clone()
         jv.dat[0].assign(1.0)
         res0 = icon[0].checkApplyJacobian(x, v, jv, 5, 1)
@@ -223,11 +221,12 @@ def test_constraint_works_sensibly(contype):
 
     sol1 = solver.solve().copy(deepcopy=True)
     if contype == "eq":
-        assert(abs(assemble(sol1 * dx) - vol) < 1e-5)
+        assert (abs(assemble(sol1 * dx) - vol) < 1e-5)
     elif contype == "ineq":
-        assert(assemble(sol1 * dx) < vol + 1e-5)
+        assert (assemble(sol1 * dx) < vol + 1e-5)
     else:
         raise NotImplementedError
+
 
 @pytest.mark.parametrize("contype", ["eq", "ineq"])
 def test_ufl_constraint_works_sensibly(contype):
@@ -257,10 +256,9 @@ def test_ufl_constraint_works_sensibly(contype):
     f = rf.controls[0]
     V = f.function_space()
     vol = 0.3
-    econ = UFLEqualityConstraint((vol - f.control**2)*dx, f)
-    icon = UFLInequalityConstraint((vol - f.control**2)*dx, f)
+    econ = UFLEqualityConstraint((vol - f.control**2) * dx, f)
+    icon = UFLInequalityConstraint((vol - f.control**2) * dx, f)
     bounds = (interpolate(Constant(0.0), V), interpolate(Constant(0.7), V))
-
 
     if contype == "eq":
         print("Run with equality constraint")
@@ -283,8 +281,7 @@ def test_ufl_constraint_works_sensibly(contype):
     u = v.clone()
     u.plus(v)
 
-
-    if len(econ)>0:
+    if len(econ) > 0:
         jv = emul[0].clone()
         jv.dat[0].assign(1.0)
         res0 = econ[0].checkApplyJacobian(x, v, jv, 5, 1)
@@ -292,11 +289,11 @@ def test_ufl_constraint_works_sensibly(contype):
         res2 = econ[0].checkApplyAdjointHessian(x, jv, u, v, 5, 1)
 
         for i in range(1, len(res0)):
-            assert res0[i][3] < 0.15 * res0[i-1][3]
+            assert res0[i][3] < 0.15 * res0[i - 1][3]
         assert res1 < 1e-10
         assert all(r[3] < 1e-10 for r in res2)
 
-    if len(icon)>0:
+    if len(icon) > 0:
         jv = imul[0].clone()
         jv.dat[0].assign(1.0)
         res0 = icon[0].checkApplyJacobian(x, v, jv, 5, 1)
@@ -304,14 +301,14 @@ def test_ufl_constraint_works_sensibly(contype):
         res2 = icon[0].checkApplyAdjointHessian(x, jv, u, v, 5, 1)
 
         for i in range(1, len(res0)):
-            assert res0[i][3] < 0.15 * res0[i-1][3]
+            assert res0[i][3] < 0.15 * res0[i - 1][3]
         assert res1 < 1e-10
         assert all(r[3] < 1e-10 for r in res2)
 
     sol1 = solver.solve().copy(deepcopy=True)
     if contype == "eq":
-        assert(abs(assemble(sol1**2 * dx) - vol) < 1e-5)
+        assert (abs(assemble(sol1**2 * dx) - vol) < 1e-5)
     elif contype == "ineq":
-        assert(assemble(sol1**2 * dx) < vol + 1e-5)
+        assert (assemble(sol1**2 * dx) < vol + 1e-5)
     else:
         raise NotImplementedError

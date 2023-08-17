@@ -1,5 +1,5 @@
 import dolfin
-from . import SolveVarFormBlock
+from .solving import SolveVarFormBlock
 
 
 class LinearVariationalSolveBlock(SolveVarFormBlock):

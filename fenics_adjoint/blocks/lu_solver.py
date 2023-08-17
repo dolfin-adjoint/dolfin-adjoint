@@ -1,7 +1,10 @@
 import dolfin
+
+from fenics_adjoint.utils import function_from_vector
+
+
 from . import SolveLinearSystemBlock
-from dolfin_adjoint_common import compat
-compat = compat.compat(dolfin)
+from .assembly import assemble_adjoint_value
 
 
 class LUSolveBlockHelper(object):
@@ -32,7 +35,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
                                             dFdu_adj_form.arguments()[0]) * dolfin.dx
                 A, _ = dolfin.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
             else:
-                A = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
+                A = assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
             if self.ident_zeros_tol is not None:
                 A.ident_zeros(self.ident_zeros_tol)
@@ -47,7 +50,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
 
         adj_sol_bdy = None
         if compute_bdy:
-            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+            adj_sol_bdy = function_from_vector(self.function_space, dJdu_copy - assemble_adjoint_value(
                 dolfin.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
@@ -58,7 +61,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
             if self.assemble_system:
                 A, _ = dolfin.assemble_system(lhs, rhs, bcs, **self.assemble_kwargs)
             else:
-                A = compat.assemble_adjoint_value(lhs, **self.assemble_kwargs)
+                A = assemble_adjoint_value(lhs, **self.assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
 
             solver = dolfin.LUSolver(A, self.method)
@@ -69,7 +72,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
             b = dolfin.Function(self.function_space).vector()
             system_assembler.assemble(b)
         else:
-            b = compat.assemble_adjoint_value(rhs)
+            b = assemble_adjoint_value(rhs)
             [bc.apply(b) for bc in bcs]
 
         if self.ident_zeros_tol is not None:

@@ -15,9 +15,10 @@ from .genericmatrix import *
 from .genericvector import *
 from .io import *
 
-from .as_backend_type import as_backend_type, VectorSpaceBasis
+from .as_backend_type import VectorSpaceBasis
 from .function_assigner import *
 from .function import Function
+from .function_space import *
 
 # Import numpy_adjoint to annotate numpy outputs
 import numpy_adjoint

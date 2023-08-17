@@ -1,9 +1,9 @@
 import dolfin
-from dolfin_adjoint_common import compat
+
 
 from pyadjoint.tape import stop_annotating
 
-compat = compat.compat(dolfin)
+from fenics_adjoint.utils import MatrixTypes
 
 _backend_SystemAssembler_assemble = dolfin.SystemAssembler.assemble
 _backend_SystemAssembler_init = dolfin.SystemAssembler.__init__
@@ -21,10 +21,10 @@ def SystemAssembler_assemble(self, *args, **kwargs):
         out = _backend_SystemAssembler_assemble(self, *args, **kwargs)
 
     for arg in args:
-        if isinstance(arg, compat.VectorType):
+        if isinstance(arg, dolfin.cpp.la.GenericVector):
             arg.form = self._b_form
             arg.bcs = self._bcs
-        elif isinstance(arg, compat.MatrixType):
+        elif isinstance(arg, MatrixTypes):
             arg.form = self._A_form
             arg.bcs = self._bcs
             arg.assemble_system = True
