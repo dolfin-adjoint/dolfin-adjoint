@@ -55,3 +55,4 @@ __author__ = meta["Author"]
 __license__ = meta["License"]
 
 set_working_tape(Tape())
+continue_annotation()
