@@ -58,7 +58,7 @@ Install dolfin-adjoint and its Python dependencies with pip:
 
 .. code-block:: bash
 
-    python3 -m pip install git+https://github.com/dolfin-adjoint/dolfin-adjoint.git@2023.0.0
+    python3 -m pip install git+https://github.com/dolfin-adjoint/dolfin-adjoint.git@2023.2.0
 
 Test your installation by running:
 
@@ -89,4 +89,4 @@ Optional dependencies:
 Source code
 ===========
 
-The source code of `pyadjoint` is available on https://github.com/dolfin-adjoint/pyadjoint.
+The source code of `dolfin-adjoint` is available on https://github.com/dolfin-adjoint/dolfin-adjoint.

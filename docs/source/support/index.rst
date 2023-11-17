@@ -14,7 +14,7 @@ Having issues?
 Do you wonder about how something works, whether some feature is
 supported or why you are getting an error? Feel free to ask on the
 `github issuetracker
-<https://github.com/dolfin-adjoint/pyadjoint/issues>`_.
+<https://github.com/dolfin-adjoint/dolfin-adjoint/issues>`_.
 
 .. _getting_answers_checklist:
 
