@@ -1,0 +1,32 @@
+name: Build documentation
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/scientificcomputing/fenics:2023-11-15
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          python3 -m pip install -e '.[doc]'
+
+      - name: Build with sphinx
+        run: |
+          cd docs
+          make html
+
+      - name: Upload documentation as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation
+          path: ./docs/build/html
+          if-no-files-found: error

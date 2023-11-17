@@ -25,11 +25,19 @@ test = ['pytest>=3.10', 'flake8', 'coverage']
 dev = ["pdbpp", "ipython", "mypy", "flake8"]
 visualisation = ['tensorflow', 'protobuf', 'networkx', 'pygraphviz']
 meshing = ['pygmsh', 'meshio']
+doc = [
+    'sphinx',
+    'sphinx-autobuild',
+    'sphinxcontrib-bibtex',
+    "pylit",
+    "sphinxcontrib-youtube",
+]
 all = [
     "dolfin_adjoint[test]",
     "dolfin_adjoint[moola]",
     "dolfin_adjoint[dev]",
     "dolfin_adjoint[visualisation]",
+    "dolfin_adjoint[doc]",
 ]
 
 [tool.pytest.ini_options]
