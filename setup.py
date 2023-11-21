@@ -12,7 +12,7 @@ extras = {
 extras['all'] = list(chain(*extras.values()))
 
 setup(name='dolfin_adjoint',
-      version='2020.0.0',
+      version='2023.0.0',
       packages=['fenics_adjoint',
                 'fenics_adjoint.types',
                 'fenics_adjoint.blocks',
