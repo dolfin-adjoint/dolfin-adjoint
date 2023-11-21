@@ -1,6 +1,8 @@
 name: Upload release to pypi
 on:
-    workflow_dispatch
+    workflow_dispatch:
+    push:
+      tags: "v*"
 
 jobs:
     pypi-publish:
@@ -26,5 +28,5 @@ jobs:
         - name: Build a binary wheel and a source tarball
           run: python3 -m build --sdist --wheel --outdir dist/ .
     
-        #   - name: Publish package distributions to PyPI
-        #     uses: pypa/gh-action-pypi-publish@release/v1
+        - name: Publish package distributions to PyPI
+          uses: pypa/gh-action-pypi-publish@release/v1
