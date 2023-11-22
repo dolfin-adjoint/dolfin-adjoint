@@ -1,6 +1,7 @@
 # Change log
 
-## dolfin-adjoint 2023.2.0.post0 [2023-11-21]
+## dolfin-adjoint 2023.3.0 [2023-11-22]
+
 - Downstream fixes for turning on annotations
 - Use Github to build webpage
 - Add [Code of conduct](./CODE_OF_CONDUCT.md)
