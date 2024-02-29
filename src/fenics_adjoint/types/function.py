@@ -208,6 +208,35 @@ class Function(FloatingType, dolfin.Function):
             raise NotImplementedError(
                 "Unknown Riesz representation %s" % riesz_representation)
 
+    def _define_riesz_map_form(self, riesz_map):
+        u = dolfin.TrialFunction(self.function_space())
+        v = dolfin.TestFunction(self.function_space())
+        if riesz_map == "L2":
+            a = dolfin.inner(u, v) * dolfin.dx
+        elif riesz_map == "H1":
+            a = dolfin.inner(u, v)*dolfin.dx \
+                + dolfin.inner(dolfin.grad(u), dolfin.grad(v))*dolfin.dx
+        else:
+            raise NotImplementedError(
+                "Unknown Riesz representation %s" % riesz_map)
+        return a
+    
+    def _riesz_representation(self, options=None):
+        options = {} if options is None else options
+        riesz_map = options.get("riesz_map", "l2")
+
+        if riesz_map == "l2":
+            return self
+        elif riesz_map in ("L2", "H1"):
+            a = self._define_riesz_map_form(riesz_map)
+            covector = dolfin.assemble(dolfin.action(a, self))
+            return create_overloaded_object(
+                function_from_vector(self.function_space(), covector)
+                )
+        else:
+            raise NotImplementedError(
+                "Unknown Riesz representation %s" % riesz_map)
+
     @no_annotations
     def _ad_create_checkpoint(self):
         if self.block is None:
