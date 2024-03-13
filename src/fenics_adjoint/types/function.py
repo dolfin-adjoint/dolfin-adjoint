@@ -221,7 +221,7 @@ class Function(FloatingType, dolfin.Function):
                 "Unknown Riesz representation %s" % riesz_map)
         return a
     
-    def _riesz_representation(self, options=None):
+    def _ad_riesz_representation(self, options=None):
         options = {} if options is None else options
         riesz_map = options.get("riesz_map", "l2")
 
