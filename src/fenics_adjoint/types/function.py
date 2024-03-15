@@ -1,5 +1,6 @@
 import dolfin
 import numpy
+from enum import Enum
 import ufl_legacy as ufl
 from pyadjoint import AdjFloat, Block, OverloadedType
 from pyadjoint.enlisting import Enlist
@@ -23,6 +24,14 @@ def type_cast_function(obj, cls):
     Useful when converting backend.Function to overloaded Function.
     """
     return cls(obj.function_space(), obj._cpp_object)
+
+
+class NormType(str, Enum):
+    """Norm types for Riesz representation.
+    """
+    l2 = 'l2'
+    L2 = 'L2'
+    H1 = 'H1'
 
 
 @register_overloaded_type
@@ -180,20 +189,20 @@ class Function(FloatingType, dolfin.Function):
     @no_annotations
     def _ad_convert_type(self, value, options=None):
         options = {} if options is None else options
-        riesz_representation = options.get("riesz_representation", "l2")
+        riesz_representation = options.get("riesz_representation", NormType.l2)
 
-        if riesz_representation == "l2":
+        if riesz_representation == NormType.l2:
             return create_overloaded_object(
                 function_from_vector(self.function_space(), value)
             )
-        elif riesz_representation == "L2":
+        elif riesz_representation == NormType.L2:
             ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
             M = dolfin.assemble(dolfin.inner(u, v) * dolfin.dx)
             linalg_solve(M, ret.vector(), value)
             return ret
-        elif riesz_representation == "H1":
+        elif riesz_representation == NormType.H1:
             ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
@@ -211,23 +220,23 @@ class Function(FloatingType, dolfin.Function):
     def _define_riesz_map_form(self, riesz_map):
         u = dolfin.TrialFunction(self.function_space())
         v = dolfin.TestFunction(self.function_space())
-        if riesz_map == "L2":
+        if riesz_map == NormType.L2:
             a = dolfin.inner(u, v) * dolfin.dx
-        elif riesz_map == "H1":
+        elif riesz_map == NormType.H1:
             a = dolfin.inner(u, v)*dolfin.dx \
                 + dolfin.inner(dolfin.grad(u), dolfin.grad(v))*dolfin.dx
         else:
             raise NotImplementedError(
                 "Unknown Riesz representation %s" % riesz_map)
         return a
-    
+
     def _ad_riesz_representation(self, options=None):
         options = {} if options is None else options
-        riesz_map = options.get("riesz_map", "l2")
+        riesz_map = options.get("riesz_map", NormType.l2)
 
-        if riesz_map == "l2":
+        if riesz_map == NormType.l2:
             return self
-        elif riesz_map in ("L2", "H1"):
+        elif riesz_map in (NormType.L2, NormType.H1):
             a = self._define_riesz_map_form(riesz_map)
             covector = dolfin.assemble(dolfin.action(a, self))
             return create_overloaded_object(
@@ -264,12 +273,12 @@ class Function(FloatingType, dolfin.Function):
 
     def _ad_dot(self, other, options=None):
         options = {} if options is None else options
-        riesz_representation = options.get("riesz_representation", "l2")
-        if riesz_representation == "l2":
+        riesz_representation = options.get("riesz_representation", NormType.l2)
+        if riesz_representation == NormType.l2:
             return self.vector().inner(other.vector())
-        elif riesz_representation == "L2":
+        elif riesz_representation == NormType.L2:
             return dolfin.assemble(dolfin.inner(self, other) * dolfin.dx)
-        elif riesz_representation == "H1":
+        elif riesz_representation == NormType.H1:
             return dolfin.assemble(
                 (dolfin.inner(self, other) + dolfin.inner(dolfin.grad(self),
                                                           dolfin.grad(
