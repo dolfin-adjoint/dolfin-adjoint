@@ -29,7 +29,6 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
         self.ksp_options_prefix = kwargs.pop("ksp_options_prefix")
         self._ad_nullspace = kwargs.pop("_ad_nullspace")
         self._ad_near_nullspace = kwargs.pop("_ad_near_nullspace")
-        self.comm=A.mpi_comm()
 
         if self.nonzero_initial_guess:
             # Here we store a variable that isn't necessarily a dependency.
@@ -56,11 +55,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
-            from petsc4py import PETSc
-            ksp = PETSc.KSP().create(comm=self.comm) 
-            solver = backend.PETScKrylovSolver(ksp) # self.method,self.preconditioner,
-            #solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
-            #solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
+            solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
+            solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
             solver.set_from_options()
 
             if self.assemble_system:
@@ -118,11 +114,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         solver = self.block_helper.forward_solver
         if solver is None:
-            from petsc4py import PETSc
-            ksp = PETSc.KSP().create(comm=self.comm) 
-            solver = backend.PETScKrylovSolver(ksp) # self.method,self.preconditioner,
-            #solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
-            #solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
+            solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
+            solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
             solver.set_from_options()
 
             if self.assemble_system:
