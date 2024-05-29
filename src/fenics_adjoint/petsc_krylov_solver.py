@@ -47,9 +47,9 @@ class PETScKrylovSolver(dolfin.PETScKrylovSolver):
         self.operator = arg0
         if hasattr(self.operator, "_ad_nullspace"):
             self._ad_nullspace = self.operator._ad_nullspace
-        self.block_helper = PETScKrylovSolveBlockHelper()
         if hasattr(self.operator, "_ad_near_nullspace"):
             self._ad_near_nullspace = self.operator._ad_near_nullspace
+
         self.block_helper = PETScKrylovSolveBlockHelper()
         return dolfin.PETScKrylovSolver.set_operator(self, arg0)
 
