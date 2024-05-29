@@ -28,6 +28,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
         self.preconditioner = kwargs.pop("krylov_preconditioner")
         self.ksp_options_prefix = kwargs.pop("ksp_options_prefix")
         self._ad_nullspace = kwargs.pop("_ad_nullspace")
+        self._ad_near_nullspace = kwargs.pop("_ad_near_nullspace")
+        self.comm=A.mpi_comm()
 
         if self.nonzero_initial_guess:
             # Here we store a variable that isn't necessarily a dependency.
@@ -54,8 +56,11 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
-            solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
-            solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
+            from petsc4py import PETSc
+            ksp = PETSc.KSP().create(comm=self.comm) 
+            solver = backend.PETScKrylovSolver(ksp) # self.method,self.preconditioner,
+            #solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
+            #solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
             solver.set_from_options()
 
             if self.assemble_system:
@@ -65,6 +70,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -78,6 +85,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -109,14 +118,19 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         solver = self.block_helper.forward_solver
         if solver is None:
-            solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
-            solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
+            from petsc4py import PETSc
+            ksp = PETSc.KSP().create(comm=self.comm) 
+            solver = backend.PETScKrylovSolver(ksp) # self.method,self.preconditioner,
+            #solver = dolfin.PETScKrylovSolver(self.method, self.preconditioner)
+            #solver.ksp().setOptionsPrefix(self.ksp_options_prefix)
             solver.set_from_options()
 
             if self.assemble_system:
                 A, _ = dolfin.assemble_system(lhs, rhs, bcs)
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -129,6 +143,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
                 [bc.apply(A) for bc in bcs]
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)

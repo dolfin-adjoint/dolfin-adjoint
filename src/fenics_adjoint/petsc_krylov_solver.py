@@ -39,11 +39,17 @@ class PETScKrylovSolver(dolfin.PETScKrylovSolver):
         self._ad_nullspace = None
         if hasattr(self.operator, "_ad_nullspace"):
             self._ad_nullspace = self.operator._ad_nullspace
+        self._ad_near_nullspace = None
+        if hasattr(self.operator, "_ad_near_nullspace"):
+            self._ad_near_nullspace = self.operator._ad_near_nullspace
 
     def set_operator(self, arg0):
         self.operator = arg0
         if hasattr(self.operator, "_ad_nullspace"):
             self._ad_nullspace = self.operator._ad_nullspace
+        self.block_helper = PETScKrylovSolveBlockHelper()
+        if hasattr(self.operator, "_ad_near_nullspace"):
+            self._ad_near_nullspace = self.operator._ad_near_nullspace
         self.block_helper = PETScKrylovSolveBlockHelper()
         return dolfin.PETScKrylovSolver.set_operator(self, arg0)
 
@@ -51,6 +57,8 @@ class PETScKrylovSolver(dolfin.PETScKrylovSolver):
         self.operator = arg0
         if hasattr(self.operator, "_ad_nullspace"):
             self._ad_nullspace = self.operator._ad_nullspace
+        if hasattr(self.operator, "_ad_near_nullspace"):
+            self._ad_near_nullspace = self.operator._ad_near_nullspace
 
         self.pc_operator = arg1
         self.block_helper = PETScKrylovSolveBlockHelper()
@@ -87,6 +95,7 @@ class PETScKrylovSolver(dolfin.PETScKrylovSolver):
                                           krylov_preconditioner=self.preconditioner,
                                           ksp_options_prefix=ksp_options_prefix,
                                           _ad_nullspace=self._ad_nullspace,
+                                          _ad_near_nullspace=self._ad_near_nullspace,
                                           ad_block_tag=self.ad_block_tag,
                                           **sb_kwargs)
             tape.add_block(block)
