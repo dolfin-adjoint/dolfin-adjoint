@@ -4,7 +4,7 @@ The full documentation is available [here](https://dolfin-adjoint.github.io/dolf
 
 # Installation
 
-First install [FEniCS](http://fenicsproject.org)
+First install [FEniCS](http://fenicsproject.org).
 Then install `dolfin-adjoint` with:
 
 ```bash
