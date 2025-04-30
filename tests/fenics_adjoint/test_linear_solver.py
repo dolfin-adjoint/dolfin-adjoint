@@ -1,6 +1,7 @@
 from fenics import *
 from fenics_adjoint import *
 from numpy.random import rand
+import numpy as np
 import pytest
 
 
