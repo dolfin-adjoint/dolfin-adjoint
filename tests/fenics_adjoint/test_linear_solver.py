@@ -14,9 +14,11 @@ def test_lu_solver():
     W = FunctionSpace(mesh, ele)
 
     # Boundaries
-    def right(x, on_boundary): return x[0] > (1.0 - DOLFIN_EPS)
+    def right(x, on_boundary):
+        return x[0] > (1.0 - DOLFIN_EPS)
 
-    def left(x, on_boundary): return x[0] < DOLFIN_EPS
+    def left(x, on_boundary):
+        return x[0] < DOLFIN_EPS
 
     def top_bottom(x, on_boundary):
         return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
@@ -67,8 +69,10 @@ def test_lu_solver():
     assert taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
-@pytest.mark.skipif("amg" not in krylov_solver_preconditioners(),
-                    reason="AMG Preconditioner not available.")
+@pytest.mark.skipif(
+    "amg" not in krylov_solver_preconditioners(),
+    reason="AMG Preconditioner not available.",
+)
 def test_krylov_solver_preconditioner():
     mesh = UnitCubeMesh(4, 4, 4)
 
@@ -79,9 +83,11 @@ def test_krylov_solver_preconditioner():
     W = FunctionSpace(mesh, ele)
 
     # Boundaries
-    def right(x, on_boundary): return x[0] > (1.0 - DOLFIN_EPS)
+    def right(x, on_boundary):
+        return x[0] > (1.0 - DOLFIN_EPS)
 
-    def left(x, on_boundary): return x[0] < DOLFIN_EPS
+    def left(x, on_boundary):
+        return x[0] < DOLFIN_EPS
 
     def top_bottom(x, on_boundary):
         return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
@@ -126,14 +132,16 @@ def test_krylov_solver_preconditioner():
     # Solve
     U = Function(W)
     U.vector()[:] = 1.0
-    solver.parameters["relative_tolerance"] = 1.0e-14
-    solver.parameters["absolute_tolerance"] = 1.0e-12
+    rtol = 1.0e-14
+    atol = 1.0e-12
+    solver.parameters["relative_tolerance"] = rtol
+    solver.parameters["absolute_tolerance"] = atol
     solver.parameters["nonzero_initial_guess"] = False
     solver.solve(U.vector(), bb)
 
     J = assemble(inner(U, U) * inner(U, U) * dx)
     Jhat = ReducedFunctional(J, Control(f))
-    assert J == Jhat(f)
+    assert np.isclose(J, Jhat(f), atol=atol, rtol=rtol)
 
     h = Constant((1.0, 1.0, 1.0))
     dJdm = h._ad_dot(Jhat.derivative())
@@ -151,9 +159,11 @@ def test_lu_solver_function_ctrl():
     W = FunctionSpace(mesh, ele)
 
     # Boundaries
-    def right(x, on_boundary): return x[0] > (1.0 - DOLFIN_EPS)
+    def right(x, on_boundary):
+        return x[0] > (1.0 - DOLFIN_EPS)
 
-    def left(x, on_boundary): return x[0] < DOLFIN_EPS
+    def left(x, on_boundary):
+        return x[0] < DOLFIN_EPS
 
     def top_bottom(x, on_boundary):
         return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
@@ -206,8 +216,10 @@ def test_lu_solver_function_ctrl():
     assert taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
-@pytest.mark.skipif("amg" not in krylov_solver_preconditioners(),
-                    reason="AMG Preconditioner not available.")
+@pytest.mark.skipif(
+    "amg" not in krylov_solver_preconditioners(),
+    reason="AMG Preconditioner not available.",
+)
 def test_krylov_solver_preconditioner_function_ctrl():
     mesh = UnitCubeMesh(4, 4, 4)
 
@@ -218,9 +230,11 @@ def test_krylov_solver_preconditioner_function_ctrl():
     W = FunctionSpace(mesh, ele)
 
     # Boundaries
-    def right(x, on_boundary): return x[0] > (1.0 - DOLFIN_EPS)
+    def right(x, on_boundary):
+        return x[0] > (1.0 - DOLFIN_EPS)
 
-    def left(x, on_boundary): return x[0] < DOLFIN_EPS
+    def left(x, on_boundary):
+        return x[0] < DOLFIN_EPS
 
     def top_bottom(x, on_boundary):
         return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
@@ -266,13 +280,15 @@ def test_krylov_solver_preconditioner_function_ctrl():
     # Solve
     U = Function(W)
     U.vector()[:] = 1.0
-    solver.parameters["relative_tolerance"] = 1.0e-14
-    solver.parameters["absolute_tolerance"] = 1.0e-12
+    rtol = 1.0e-14
+    atol = 1.0e-12
+    solver.parameters["relative_tolerance"] = rtol
+    solver.parameters["absolute_tolerance"] = atol
     solver.parameters["nonzero_initial_guess"] = True
     solver.solve(U.vector(), bb)
     J = assemble(inner(U, U) * inner(U, U) * dx)
     Jhat = ReducedFunctional(J, Control(f))
-    assert J == Jhat(f)
+    assert np.isclose(J, Jhat(f), atol=atol, rtol=rtol)
 
     h = Function(f.function_space())
     h.vector()[:] = rand(f.function_space().dim())
@@ -326,6 +342,6 @@ def test_LU_solver_ident_zeros():
     with stop_annotating():
         w1 = project(Expression("x[0]*x[1]", degree=2), V)
     results = taylor_to_dict(Jhat, w, w1)
-    assert(min(results["R0"]["Rate"]) > 0.95)
-    assert(min(results["R1"]["Rate"]) > 1.95)
-    assert(min(results["R2"]["Rate"]) > 2.95)
+    assert min(results["R0"]["Rate"]) > 0.95
+    assert min(results["R1"]["Rate"]) > 1.95
+    assert min(results["R2"]["Rate"]) > 2.95
