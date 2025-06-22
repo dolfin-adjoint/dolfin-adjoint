@@ -30,10 +30,10 @@ WORKDIR /src/Ipopt-releases-${IPOPT_VERSION}
 
 # Build Ipopt for correct architecture
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; \
-    then ./configure --build=aarch64-unknown-linux-gnu -with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps="yes" --with-mumps-cflags="-I/usr/include/aarch64-linux-gnu/mpich/ -I/usr/local/petsc/linux-gnu-real-32/include/" ; \
+    then ./configure --build=aarch64-unknown-linux-gnu -with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps="yes" --with-mumps-cflags="-I${PETSC_DIR}/${PETSC_ARCH}/include/ -I/usr/include/aarch64-linux-gnu/mpich/" ; \
     make install; \
     elif [ "$TARGETPLATFORM" = "linux/amd64" ]; \
-    then ./configure --build=amd64-unknown-linux-gnu --with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps="yes" --with-mumps-cflags="-I/usr/include/x86_64-linux-gnu/mpich/ -I/usr/local/petsc/linux-gnu-real-32/include/" ; \
+    then ./configure --build=amd64-unknown-linux-gnu --with-lapack="-llapack" --prefix="/usr/local"  --enable-debug --enable-shared --with-mumps="yes" --with-mumps-cflags="-I${PETSC_DIR}/${PETSC_ARCH}/include/ -I/usr/include/x86_64-linux-gnu/mpich/" ; \
     make install; \
     else echo "Unknown TARGETPLATFORM: ${TARGETPLATFORM}, it should be either 'linux/amd64' or 'linux/arm64'"; \
     fi
