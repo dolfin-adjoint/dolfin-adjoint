@@ -15,7 +15,7 @@ readme = "README.md"
 dependencies = [
     "fenics-ufl-legacy",
     "scipy>=1.0",
-    'pyadjoint-ad@git+https://github.com/dolfin-adjoint/pyadjoint.git',
+    'pyadjoint-ad',
     "numpy<2.0.0"
 ]
 
