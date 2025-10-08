@@ -35,7 +35,7 @@ class Function(FloatingType, dolfin.Function):
                                                               None),
                                        annotate=kwargs.pop("annotate", True),
                                        **kwargs)
-        if isinstance(args[0], dolfin.Function):
+        if len(args) == 1 and isinstance(args[0], dolfin.Function):
             dolfin.Function.__init__(self, args[0].ufl_function_space(), args[0].vector(), **kwargs)
         elif isinstance(args[0], dolfin.cpp.la.GenericVector):
             if hasattr(args[0], "_function_space"):
