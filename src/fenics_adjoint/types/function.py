@@ -364,7 +364,9 @@ class FunctionAssignBlock(Block):
                 adj_output = dolfin.Function(
                     block_variable.output.function_space())
                 adj_output.assign(prepared)
-                return adj_output.vector()
+                vec = adj_output.vector()
+                vec._function_space = adj_output.function_space()
+                return vec
         else:
             # Linear combination
             expr, adj_input_func = prepared
