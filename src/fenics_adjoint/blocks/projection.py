@@ -17,4 +17,12 @@ class ProjectBlock(SolveVarFormBlock):
         # This relies on the return value of project == function if given.
         kwargs.pop("function", None)
 
+        # Solver_type is specific for project, so we rename it
+        solver_type = kwargs.pop("solver_type", None)
+        prec_type = kwargs.pop("preconditioner_type", None)
+        forward_kwargs = kwargs.pop("forward_kwargs", {})
+        forward_solver_params = forward_kwargs.pop("solver_parameters", {})
+        forward_solver_params.update({"linear_solver": solver_type, "preconditioner": prec_type})
+        forward_kwargs.update({"solver_parameters": forward_solver_params})
+        kwargs["forward_kwargs"] = forward_kwargs
         super(ProjectBlock, self).__init__(a == L, output, bcs, *args, **kwargs)
