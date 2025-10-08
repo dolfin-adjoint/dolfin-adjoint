@@ -15,7 +15,7 @@ readme = "README.md"
 dependencies = [
     "fenics-ufl-legacy",
     "scipy>=1.0",
-    'pyadjoint-ad',
+    'pyadjoint-ad<2025.10.0',
     "numpy<2.0.0"
 ]
 
