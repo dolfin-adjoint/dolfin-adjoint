@@ -28,6 +28,7 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
         self.preconditioner = kwargs.pop("krylov_preconditioner")
         self.ksp_options_prefix = kwargs.pop("ksp_options_prefix")
         self._ad_nullspace = kwargs.pop("_ad_nullspace")
+        self._ad_near_nullspace = kwargs.pop("_ad_near_nullspace")
 
         if self.nonzero_initial_guess:
             # Here we store a variable that isn't necessarily a dependency.
@@ -65,6 +66,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -78,6 +81,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
 
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -117,6 +122,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
                 A, _ = dolfin.assemble_system(lhs, rhs, bcs)
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -129,6 +136,8 @@ class PETScKrylovSolveBlock(SolveLinearSystemBlock):
                 [bc.apply(A) for bc in bcs]
                 if self._ad_nullspace is not None:
                     as_backend_type(A).set_nullspace(self._ad_nullspace)
+                if self._ad_near_nullspace is not None:
+                    as_backend_type(A).set_near_nullspace(self._ad_near_nullspace)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
