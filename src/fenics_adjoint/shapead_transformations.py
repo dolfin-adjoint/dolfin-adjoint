@@ -28,7 +28,10 @@ def mesh_to_boundary(v, b_mesh):
     mesh = v.function_space().mesh()
     # We use a Dof->Vertex mapping to create a global
     # array with all DOF values ordered by mesh vertices
-    DofToVert = dolfin.dof_to_vertex_map(v.function_space())
+    try:
+        DofToVert = dolfin.dof_to_vertex_map(v.function_space())
+    except RuntimeError:
+        DofToVert = dolfin.dof_to_vertex_map(v.function_space().collapse())
     VGlobal = numpy.zeros(v.vector().size())
 
     vec = v.vector().get_local()
