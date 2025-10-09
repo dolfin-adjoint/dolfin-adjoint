@@ -169,10 +169,10 @@ J = assemble(inner(u, u) * dx)
 m = Control(g)
 
 adj_timer = Timer("Adjoint run")
-dJdm = compute_gradient(J, m, options={"riesz_representation": "L2"})
+dJdm = compute_derivative(J, m, riesz_map=True)
 adj_time = adj_timer.stop()
 
-# Note that we set the "riesz_representation" option to "L2" in
+# Note that we set the "riesz_map" option to `True` in
 # :py:func:`compute_gradient`.  It indicates that the gradient should not be
 # returned as an operator, that is not in the dual space :math:`V^*`, but
 # instead its Riesz representation in the primal space :math:`V`. This is

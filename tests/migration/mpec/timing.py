@@ -8,12 +8,13 @@ n = 512
 mesh = UnitSquareMesh(n, n)
 
 V = FunctionSpace(mesh, "CG", 1)
-gamma = Constant(1e3) # 1.0 / alpha in the paper
+gamma = Constant(1e3)  # 1.0 / alpha in the paper
 
 f = interpolate(Expression("-std::abs(x[0]*x[1] - 0.5) + 0.25"), V)
 yd = Function(f)
 alpha = 1e-2
 u = Function(V, name="Control")
+
 
 def main():
     y = Function(V, name="Solution")
@@ -22,16 +23,18 @@ def main():
     eps = 1e-4
 
     def smoothmax(r):
-        return conditional(gt(r, eps), r - eps/2, conditional(lt(r, 0), 0, r**2 / (2*eps)))
+        return conditional(gt(r, eps), r - eps / 2, conditional(lt(r, 0), 0, r**2 / (2 * eps)))
+
     def uflmax(a, b):
         return conditional(gt(a, b), a, b)
 
-    F = inner(grad(y), grad(w))*dx - gamma * inner(smoothmax(-y), w)*dx - inner(f + u, w)*dx
+    F = inner(grad(y), grad(w)) * dx - gamma * inner(smoothmax(-y), w) * dx - inner(f + u, w) * dx
 
     bc = DirichletBC(V, 0.0, "on_boundary")
 
-    solve(F == 0, y, bcs = bc, solver_parameters={"newton_solver": {"maximum_iterations": 30}})
+    solve(F == 0, y, bcs=bc, solver_parameters={"newton_solver": {"maximum_iterations": 30}})
     return y
+
 
 if __name__ == "__main__":
     fwd = Timer("forward")
@@ -40,11 +43,11 @@ if __name__ == "__main__":
 
     print("fwd_time: ", fwd_time)
 
-    J = Functional(0.5*inner(y - yd, y - yd)*dx*dt[FINISH_TIME] + alpha/2*inner(u, u)*dx*dt[START_TIME])
+    J = Functional(0.5 * inner(y - yd, y - yd) * dx * dt[FINISH_TIME] + alpha / 2 * inner(u, u) * dx * dt[START_TIME])
     m = TimeConstantParameter(u)
 
     adj = Timer("adjoint")
-    dJ = compute_gradient(J, m)
+    dJ = compute_derivative(J, m)
     adj_time = adj.stop()
 
     print("adj_time: ", adj_time)

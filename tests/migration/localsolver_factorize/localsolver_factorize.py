@@ -74,7 +74,7 @@ if __name__ == "__main__":
     J = Functional(inner(u, u) * dx)
     m = Control(c)
     Jm = assemble(inner(u, u) * dx)
-    dJdm = compute_gradient(J, m, forget=False)
+    dJdm = compute_derivative(J, m, forget=False)
 
     def Jhat(m):
         print("Evaluating with c: ", float(m))

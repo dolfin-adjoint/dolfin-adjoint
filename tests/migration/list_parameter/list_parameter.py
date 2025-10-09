@@ -14,8 +14,10 @@ n = 30
 mesh = UnitIntervalMesh(n)
 V = FunctionSpace(mesh, "CG", 2)
 
+
 def Dt(u, u_, timestep):
-    return (u - u_)/timestep
+    return (u - u_) / timestep
+
 
 def main(ic, nu, annotate=False):
 
@@ -23,10 +25,10 @@ def main(ic, nu, annotate=False):
     u = Function(V, name="VelocityNext")
     v = TestFunction(V)
 
-    timestep = Constant(1.0/n)
+    timestep = Constant(1.0 / n)
 
-    F = (Dt(u, u_, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (Dt(u, u_, timestep) * v
+         + u * u.dx(0) * v + nu * u.dx(0) * v.dx(0)) * dx
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
@@ -39,15 +41,16 @@ def main(ic, nu, annotate=False):
 
     return u_
 
+
 if __name__ == "__main__":
 
-    ic = project(Expression("sin(2*pi*x[0])", degree=1),  V)
+    ic = project(Expression("sin(2*pi*x[0])", degree=1), V)
     nu = Constant(0.0001)
     forward = main(ic, nu, annotate=True)
 
-    J = assemble(forward*forward*dx + ic*ic*dx)
+    J = assemble(forward * forward * dx + ic * ic * dx)
     m = [Control(ic), Control(nu)]
-    dJdm = compute_gradient(J, m)
+    dJdm = compute_derivative(J, m)
     h1 = Function(V)
     h1.vector()[:] = rand(V.dim())
     h2 = Constant(0.0001)
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     def Jfunc(m):
         lic, lnu = m
         forward = main(lic, lnu, annotate=False)
-        return assemble(forward*forward*dx + lic*lic*dx)
+        return assemble(forward * forward * dx + lic * lic * dx)
 
     minconv = taylor_test(Jfunc, [ic, nu], hs, dJdm=dJdm)
     assert minconv > 1.7

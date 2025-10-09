@@ -1,5 +1,6 @@
 import dolfin
 import numpy
+import typing
 import ufl_legacy as ufl
 from pyadjoint import AdjFloat, Block, OverloadedType
 from pyadjoint.enlisting import Enlist
@@ -15,14 +16,6 @@ from fenics_adjoint.blocks import (FunctionEvalBlock, FunctionMergeBlock,
                                    FunctionSplitBlock)
 from fenics_adjoint.utils import function_from_vector, gather, linalg_solve, create_function
 from .constant import create_constant
-
-
-def type_cast_function(obj, cls):
-    """Type casts Function object `obj` to an instance of `cls`.
-
-    Useful when converting backend.Function to overloaded Function.
-    """
-    return cls(obj.function_space(), obj._cpp_object)
 
 
 @register_overloaded_type
@@ -42,11 +35,15 @@ class Function(FloatingType, dolfin.Function):
                                                               None),
                                        annotate=kwargs.pop("annotate", True),
                                        **kwargs)
-        dolfin.Function.__init__(self, *args, **kwargs)
-
-    @classmethod
-    def _ad_init_object(cls, obj):
-        return type_cast_function(obj, cls)
+        if len(args) == 1 and isinstance(args[0], dolfin.Function):
+            dolfin.Function.__init__(self, args[0].function_space(), args[0].vector(), **kwargs)
+        elif isinstance(args[0], dolfin.cpp.la.GenericVector):
+            if hasattr(args[0], "_function_space"):
+                dolfin.Function.__init__(self, args[0]._function_space, args[0], **kwargs)
+            else:
+                raise ValueError("Cannot create Function from Vector without _function_space attribute")
+        else:
+            dolfin.Function.__init__(self, *args, **kwargs)
 
     def copy(self, *args, **kwargs):
         ad_block_tag = kwargs.pop("ad_block_tag", None)
@@ -177,23 +174,24 @@ class Function(FloatingType, dolfin.Function):
         vec.function = self
         return vec
 
-    @no_annotations
-    def _ad_convert_type(self, value, options=None):
-        options = {} if options is None else options
-        riesz_representation = options.get("riesz_representation", "l2")
+    def _ad_init_zero(self, dual: bool = False):
+        return Function(self.function_space())
 
-        if riesz_representation == "l2":
+    @no_annotations
+    def _ad_convert_riesz(self, value, riesz_map: typing.Literal["l2", "L2", "H1"] | typing.Callable = "L2"):
+
+        if riesz_map == "l2":
             return create_overloaded_object(
                 function_from_vector(self.function_space(), value)
             )
-        elif riesz_representation == "L2":
+        elif riesz_map == "L2" or riesz_map is None:
             ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
             M = dolfin.assemble(dolfin.inner(u, v) * dolfin.dx)
             linalg_solve(M, ret.vector(), value)
             return ret
-        elif riesz_representation == "H1":
+        elif riesz_map == "H1":
             ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
@@ -202,11 +200,11 @@ class Function(FloatingType, dolfin.Function):
                     dolfin.grad(u), dolfin.grad(v)) * dolfin.dx)
             linalg_solve(M, ret.vector(), value)
             return ret
-        elif callable(riesz_representation):
-            return riesz_representation(value)
+        elif callable(riesz_map):
+            return riesz_map(value)
         else:
             raise NotImplementedError(
-                "Unknown Riesz representation %s" % riesz_representation)
+                f"Unknown Riesz representation {riesz_map}")
 
     @no_annotations
     def _ad_create_checkpoint(self):
@@ -233,7 +231,7 @@ class Function(FloatingType, dolfin.Function):
         dolfin.Function.assign(r, self + other)
         return r
 
-    def _ad_dot(self, other, options=None):
+    def _ad_dot(self, other, options: dict | None = None):
         options = {} if options is None else options
         riesz_representation = options.get("riesz_representation", "l2")
         if riesz_representation == "l2":
@@ -366,7 +364,9 @@ class FunctionAssignBlock(Block):
                 adj_output = dolfin.Function(
                     block_variable.output.function_space())
                 adj_output.assign(prepared)
-                return adj_output.vector()
+                vec = adj_output.vector()
+                vec._function_space = adj_output.function_space()
+                return vec
         else:
             # Linear combination
             expr, adj_input_func = prepared
@@ -392,7 +392,9 @@ class FunctionAssignBlock(Block):
                 R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
                 return self._adj_assign_constant(adj_output, R)
             else:
-                return adj_output.vector()
+                vec = adj_output.vector()
+                vec._function_space = adj_output.function_space()
+                return vec
 
     def _adj_assign_constant(self, adj_output, constant_fs):
         r = dolfin.Function(constant_fs)

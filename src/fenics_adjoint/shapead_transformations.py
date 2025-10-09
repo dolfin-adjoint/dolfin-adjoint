@@ -26,10 +26,12 @@ def mesh_to_boundary(v, b_mesh):
     """
     # Extract the underlying volume and boundary meshes
     mesh = v.function_space().mesh()
-
     # We use a Dof->Vertex mapping to create a global
     # array with all DOF values ordered by mesh vertices
-    DofToVert = dolfin.dof_to_vertex_map(v.function_space())
+    try:
+        DofToVert = dolfin.dof_to_vertex_map(v.function_space())
+    except RuntimeError:
+        DofToVert = dolfin.dof_to_vertex_map(v.function_space().collapse())
     VGlobal = numpy.zeros(v.vector().size())
 
     vec = v.vector().get_local()
@@ -155,7 +157,9 @@ class SurfaceTransferBlock(Block):
         adj_value = dolfin.Function(W)
         adj_value.vector()[:] = adj_input
         adj_output = vector_mesh_to_boundary(adj_value, b_mesh)
-        self.get_dependencies()[0].add_adj_output(adj_output.vector())
+        vec = adj_output.vector()
+        vec._function_space = adj_output.function_space()
+        self.get_dependencies()[0].add_adj_output(vec)
 
     @no_annotations
     def evaluate_tlm(self, markings=False):
@@ -176,7 +180,9 @@ class SurfaceTransferBlock(Block):
         hessian_value = dolfin.Function(W)
         hessian_value.vector()[:] = hessian_input
         hessian_output = vector_mesh_to_boundary(hessian_value, mesh)
-        self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
+        vec = hessian_output.vector()
+        vec._function_space = hessian_output.function_space()
+        self.get_dependencies()[0].add_hessian_output(vec)
 
     @no_annotations
     def recompute(self):

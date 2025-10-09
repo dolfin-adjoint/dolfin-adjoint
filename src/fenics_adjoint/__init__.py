@@ -24,6 +24,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
                        MoolaOptimizationProblem, print_optimization_methods,
                        stop_annotating)
+from pyadjoint.drivers import compute_derivative
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from .system_assembly import *

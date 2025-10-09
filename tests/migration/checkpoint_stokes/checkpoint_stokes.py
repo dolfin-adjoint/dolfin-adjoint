@@ -22,25 +22,28 @@ from math import ceil
 
 from dolfin import *
 
+
 def stokes(W, nu, f):
     (u, p) = TrialFunctions(W)
     (v, q) = TestFunctions(W)
-    a = (nu*inner(grad(u), grad(v)) +
-         p*div(v) + q*div(u))*dx
-    L = inner(f, v)*dx
+    a = (nu * inner(grad(u), grad(v))
+         + p * div(v) + q * div(u)) * dx
+    L = inner(f, v) * dx
     return (a, L)
+
 
 def temperature(X, kappa, v, t_, k):
     t = TrialFunction(X)
     s = TestFunction(X)
 
-    F = ((t - t_)/k*s + inner(kappa*grad(t), grad(s))
-         + dot(v, grad(t))*s)*dx - s*dx
+    F = ((t - t_) / k * s + inner(kappa * grad(t), grad(s))
+         + dot(v, grad(t)) * s) * dx - s * dx
     (a, L) = system(F)
     return (a, L)
 
+
 def flow_boundary_conditions(W):
-    u0 = Constant((0.0,0.0))
+    u0 = Constant((0.0, 0.0))
     bottom = DirichletBC(W.sub(0), (0.0, 0.0), "near(x[1], 0.0)")
     top = DirichletBC(W.sub(0), (0.0, 0.0), "near(x[1], 1.0)")
     left = DirichletBC(W.sub(0).sub(0), 0.0, "near(x[0], 0.0)")
@@ -48,13 +51,16 @@ def flow_boundary_conditions(W):
     bcs = [bottom, top, left, right]
     return bcs
 
+
 def temperature_boundary_conditions(Q):
     bc = DirichletBC(Q, 0.0, "near(x[1], 1.0)")
     return [bc]
 
+
 n = 16
 mesh = UnitSquareMesh(n, n)
 X = FunctionSpace(mesh, "CG", 1)
+
 
 def main(ic, annotate=False):
 
@@ -64,7 +70,7 @@ def main(ic, annotate=False):
     timestep = 0.1
 
     if annotate:
-        adj_checkpointing('multistage', int(ceil(end/float(timestep)))+1, 0, 5, verbose=True)
+        adj_checkpointing('multistage', int(ceil(end / float(timestep))) + 1, 0, 5, verbose=True)
 
     # Define meshes and function spaces
     cg2 = VectorElement("CG", triangle, 2)
@@ -90,7 +96,7 @@ def main(ic, annotate=False):
     kappa = Constant(1.0)
 
     # Define flow equation
-    g = as_vector((Ra*T_, 0))
+    g = as_vector((Ra * T_, 0))
     flow_eq = stokes(W, nu, g)
 
     # Define temperature equation
@@ -104,9 +110,10 @@ def main(ic, annotate=False):
         T_.assign(T, annotate=annotate)
 
         t += timestep
-        adj_inc_timestep(t, finished=t>end)
+        adj_inc_timestep(t, finished=t > end)
 
     return T_
+
 
 if __name__ == "__main__":
 
@@ -118,16 +125,15 @@ if __name__ == "__main__":
     ic = interpolate(T0, X, name="InitialCondition")
     T = main(ic, annotate=True)
 
-
     print("Running adjoint ... ")
-    J = Functional(T*T*dx*dt[FINISH_TIME])
+    J = Functional(T * T * dx * dt[FINISH_TIME])
     m = Control(ic)
 
     def Jhat(ic):
         T = main(ic, annotate=False)
-        return assemble(T*T*dx)
+        return assemble(T * T * dx)
 
-    JT = assemble(T*T*dx)
-    dJdic = compute_gradient(J, m)
+    JT = assemble(T * T * dx)
+    dJdic = compute_derivative(J, m)
     minconv = taylor_test(Jhat, m, JT, dJdic, value=ic)
     assert minconv > 1.9

@@ -17,7 +17,7 @@ class FunctionEvalBlock(Block):
         element = V.element()
         visited = []
         adj_vec = dolfin.Function(V).vector()
-
+        adj_vec._function_space = V
         for cell_idx in range(len(mesh.cells())):
             cell = dolfin.Cell(mesh, cell_idx)
             if cell.contains(p):

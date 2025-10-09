@@ -69,7 +69,8 @@ from __future__ import print_function
 from dolfin import *
 from dolfin_adjoint import *
 import numpy as np
-import os, sys
+import os
+import sys
 
 # Set log level
 set_log_level(LogLevel.WARNING)
@@ -89,11 +90,11 @@ k = Constant(1e-3)
 # separately:
 
 # Compile sub domains for boundaries
-left  = CompiledSubDomain("near(x[0], 0.)")
+left = CompiledSubDomain("near(x[0], 0.)")
 right = CompiledSubDomain("near(x[0], 1.)")
 
 # Label boundaries, required for the objective
-boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim()-1)
+boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 left.mark(boundary_parts, 0)
 right.mark(boundary_parts, 1)
 ds = Measure("ds", subdomain_data=boundary_parts)
@@ -101,10 +102,11 @@ ds = Measure("ds", subdomain_data=boundary_parts)
 # Then, an expression is built for the time dependent source term,
 # We need to provide a second expression for evaluating its derivative.
 
+
 class Source(UserExpression):
     def __init__(self, omega=Constant(2e2), **kwargs):
         """ Construct the source function """
-        super().__init__(self,**kwargs)
+        super().__init__(self, **kwargs)
         self.t = 0.0
         self.omega = omega
 
@@ -133,6 +135,7 @@ class SourceDerivative(UserExpression):
 
 # Before the inverse problem can be solved, we have to implement the forward problem:
 
+
 def forward(excitation, c=Constant(1.), record=False, annotate=False, objective=None):
     """ The forward problem """
 
@@ -158,7 +161,8 @@ def forward(excitation, c=Constant(1.), record=False, annotate=False, objective=
     u = Function(U, name="u", annotate=annotate)
 
     # The actual timestepping
-    if record: rec = [u1(1.), ]
+    if record:
+        rec = [u1(1.), ]
     i = 1
     t = 0.0  # Initial time
     T = 3.e-1  # Final time
@@ -194,6 +198,7 @@ def forward(excitation, c=Constant(1.), record=False, annotate=False, objective=
 # Perhaps an even better solution would be to define a class and
 # use `self` as a storage.
 
+
 def objective(storage, u=None, t=None, finalize=False):
     if finalize:
         area = storage["last_time"] - storage["first_time"]
@@ -208,6 +213,8 @@ def objective(storage, u=None, t=None, finalize=False):
 
 # Callback function for the optimizer
 # Writes intermediate results to a logfile
+
+
 def eval_cb(j, m):
     """ The callback function keeping a log """
 
@@ -215,6 +222,7 @@ def eval_cb(j, m):
     print("objective = %15.10e " % j)
 
 # Now we can have a look at the optimization procedure
+
 
 def optimize(dbg=False):
     """ The optimization routine """
@@ -253,7 +261,7 @@ def optimize(dbg=False):
     J = objective(storage, finalize=True)
 
     # compute the gradient
-    dJd0 = compute_gradient(J, control)
+    dJd0 = compute_derivative(J, control)
     print("gradient = ", float(dJd0))
 
     # Prepare the reduced functional
@@ -268,11 +276,12 @@ def optimize(dbg=False):
 
 # Lastly we implement some code to run the optimization:
 
+
 if __name__ == "__main__":
     if '-r' in sys.argv:
         os.popen('rm -rf recorded.txt')
         source = Source(Constant(2e2), degree=3)
-        forward(source, 2*DOLFIN_PI, True)
+        forward(source, 2 * DOLFIN_PI, True)
     else:
         optimize()
 

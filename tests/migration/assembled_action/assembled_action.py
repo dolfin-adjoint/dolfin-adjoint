@@ -6,17 +6,19 @@ from numpy.random import rand
 mesh = UnitIntervalMesh(10)
 V = FunctionSpace(mesh, "CG", 1)
 
+
 def main(data):
     u = TrialFunction(V)
     v = TestFunction(V)
-    mass = inner(u, v)*dx
+    mass = inner(u, v) * dx
     M = assemble(mass)
 
-    rhs = M*data.vector()
+    rhs = M * data.vector()
     soln = Function(V)
 
     solve(M, soln.vector(), rhs)
     return soln
+
 
 if __name__ == "__main__":
     data = Function(V, name="Data")
@@ -24,13 +26,14 @@ if __name__ == "__main__":
 
     soln = main(data)
 
-    J = assemble(inner(soln, soln)*dx)
+    J = assemble(inner(soln, soln) * dx)
     c = Control(data)
-    dJdic = compute_gradient(J, c)
+
+    dJdic = compute_derivative(J, c)
 
     def Jhat(data):
         soln = main(data)
-        return assemble(soln*soln*dx)
+        return assemble(soln * soln * dx)
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())

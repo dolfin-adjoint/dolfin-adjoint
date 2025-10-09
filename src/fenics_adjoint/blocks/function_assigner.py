@@ -26,7 +26,9 @@ class FunctionAssignerBlock(Block):
         return out_functions
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return prepared[idx].vector()
+        vec = prepared[idx].vector()
+        vec._function_space = prepared[idx].function_space()
+        return vec
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         return self.prepare_recompute_component(tlm_inputs, relevant_outputs)
