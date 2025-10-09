@@ -47,21 +47,21 @@ if __name__ == "__main__":
     ic = project(Expression("sin(2*pi*x[0])", degree=1), V)
     nu = Constant(0.0001)
     forward = main(ic, nu, annotate=True)
-compute_derivative(
-    J=assemble(forward * forward * dx + ic * ic * dx)
-    m=[Control(ic), Control(nu)]
-    dJdm=compute_derivative(J, m)
-    h1=Function(V)
-    h1.vector()[:]=rand(V.dim())
-    h2=Constant(0.0001)
 
-    hs=[h1, h2]
-    dJdm=sum([hs[i]._ad_dot(dJdm[i]) for i in range(len(hs))])
+    J = assemble(forward * forward * dx + ic * ic * dx)
+    m = [Control(ic), Control(nu)]
+    dJdm = compute_derivative(J, m)
+    h1 = Function(V)
+    h1.vector()[:] = rand(V.dim())
+    h2 = Constant(0.0001)
+
+    hs = [h1, h2]
+    dJdm = sum([hs[i]._ad_dot(dJdm[i]) for i in range(len(hs))])
 
     def Jfunc(m):
-        lic, lnu=m
-        forward=main(lic, lnu, annotate=False)
+        lic, lnu = m
+        forward = main(lic, lnu, annotate=False)
         return assemble(forward * forward * dx + lic * lic * dx)
 
-    minconv=taylor_test(Jfunc, [ic, nu], hs, dJdm=dJdm)
+    minconv = taylor_test(Jfunc, [ic, nu], hs, dJdm=dJdm)
     assert minconv > 1.7

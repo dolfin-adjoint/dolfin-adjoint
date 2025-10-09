@@ -134,19 +134,19 @@ if __name__ == "__main__":
     forward, j = main(ic, annotate=True)
     ic = forward
     ic.vector()[:] = ic_copy.vector()
-    timer.stcompute_derivative(
-    forward_copy=Function(forward)
+    timer.stop()
+    forward_copy = Function(forward)
 
     adj_html("forward.html", "forward")
 
-    dtm=TimeMeasure()
-    J=Functional((1.0 / (4 * eps)) * (pow((-1.0 / eps) * forward[1], 2)) * dx * dtm)
-    dJdic=compute_derivative(J, InitialConditionParameter(ic))
+    dtm = TimeMeasure()
+    J = Functional((1.0 / (4 * eps)) * (pow((-1.0 / eps) * forward[1], 2)) * dx * dtm)
+    dJdic = compute_derivative(J, InitialConditionParameter(ic))
 
     def J(ic):
-        u, j=main(ic, annotate=False)
+        u, j = main(ic, annotate=False)
         return j
 
-    minconv=utils.test_initial_condition_adjoint(J, ic_copy, dJdic, seed=1.0e-7)
+    minconv = utils.test_initial_condition_adjoint(J, ic_copy, dJdic, seed=1.0e-7)
     if minconv < 1.9:
         sys.exit(1)

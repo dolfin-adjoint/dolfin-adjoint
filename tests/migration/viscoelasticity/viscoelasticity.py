@@ -148,7 +148,7 @@ def crank_nicolson_step(Z, z_, k_n, g, v_D_mid, ds, params):
     beta = Constant(penalty_beta)
     h = CellVolume(Z.mesh())
     F_penalty = 0.5 * (beta * inv(h) * inner((tau0 + tau1) * n,
-                                       (sigma0 + sigma1) * n - g) * ds(1))
+                                             (sigma0 + sigma1) * n - g) * ds(1))
     F = F + F_penalty
 
     return F
@@ -185,7 +185,7 @@ def bdf2_step(Z, z_, z__, k_n, g, v_D, ds, params):
     beta = Constant(penalty_beta)
     h = CellVolume(Z.mesh())
     F_penalty = beta * inv(h) * inner((tau0 + tau1) * n,
-                                  (sigma0 + sigma1) * n - g) * ds(1)
+                                      (sigma0 + sigma1) * n - g) * ds(1)
     F = F + F_penalty
     return F
 
@@ -305,16 +305,16 @@ if __name__ == "__main__":
 
     J = assemble(inner(sigma0[2], sigma0[2]) * dx)
     m = Control(amplitude)
-    dJdm = compute_derivative(e(J, m)
-    h=Constant(0.1)
-    dJdm=h._ad_dot(dJdm)
+    dJdm = compute_derivative(J, m)
+    h = Constant(0.1)
+    dJdm = h._ad_dot(dJdm)
 
     def Jfunc(amplitude):
-        z=main(ic, params, amplitude, T=T, dt=dt, annotate=False)
-        (sigma0, sigma1, v, gamma)=split(z)
-        J=assemble(inner(sigma0[2], sigma0[2]) * dx)
+        z = main(ic, params, amplitude, T=T, dt=dt, annotate=False)
+        (sigma0, sigma1, v, gamma) = split(z)
+        J = assemble(inner(sigma0[2], sigma0[2]) * dx)
         return J
 
     print("Checking adjoint correctness ... ")
-    minconv=taylor_test(Jfunc, amplitude, h, dJdm)
+    minconv = taylor_test(Jfunc, amplitude, h, dJdm)
     assert minconv > 1.8

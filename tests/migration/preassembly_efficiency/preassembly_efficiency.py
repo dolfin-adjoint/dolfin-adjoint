@@ -30,7 +30,7 @@ from fenics import *
 from fenics_adjoint import *
 
 # Print log messages only from the root process in parallel
-parameters["std_out_all_processes"] = False;
+parameters["std_out_all_processes"] = False
 set_log_level(PROGRESS)
 
 # Load mesh from file
@@ -58,7 +58,7 @@ def main(ic):
 
     # Define boundary conditions
     noslip = DirichletBC(V, (0, 0),
-                          "on_boundary && \
+                         "on_boundary && \
                            (x[0] < DOLFIN_EPS | x[1] < DOLFIN_EPS | \
                            (x[0] > 0.5 - DOLFIN_EPS && x[1] > 0.5 - DOLFIN_EPS))")
     inflow = DirichletBC(Q, p_in, "x[1] > 1.0 - DOLFIN_EPS")
@@ -77,7 +77,7 @@ def main(ic):
 
     # Tentative velocity step
     F1 = (1 / k) * inner(u - u0, v) * dx + inner(grad(u0) * u0, v) * dx + \
-         nu * inner(grad(u), grad(v)) * dx - inner(f, v) * dx
+        nu * inner(grad(u), grad(v)) * dx - inner(f, v) * dx
     a1 = lhs(F1)
     L1 = rhs(F1)
 
@@ -170,11 +170,11 @@ if __name__ == "__main__":
     J = assemble(inner(soln, soln)**1 * dx + inner(ic, ic) * dx)
     m = Control(soln)
     adj_timer = Timer("Adjoint run")
-    dJdm = compute_derivative(e(J, m)
-    adj_time=adj_timer.stop()
+    dJdm = compute_derivative(J, m)
+    adj_time = adj_timer.stop()
 
     print("Adjoint time: ", adj_time)
-    ratio=adj_time / fwd_time
+    ratio = adj_time / fwd_time
     print("Ratio: ", ratio)
 
     if '--ignore' not in sys.argv:

@@ -45,19 +45,18 @@ if __name__ == "__main__":
     adj_html("adjoint.html", "adjoint")
 
     adj_check_checkpoints()
-compute_derivative(
-    J=Functional(inner(u, u) * dx * dt[FINISH_TIME])
-    dJdnu=compute_derivative(J, Control(nu))
+    J = Functional(inner(u, u) * dx * dt[FINISH_TIME])
+    dJdnu = compute_derivative(J, Control(nu))
 
-    parameters["adjoint"]["stop_annotating"]=True
+    parameters["adjoint"]["stop_annotating"] = True
 
-    Jnu=assemble(inner(u, u) * dx)  # current value
+    Jnu = assemble(inner(u, u) * dx)  # current value
 
     def Jhat(nu):  # the functional as a pure function of nu
-        u=main(nu)
+        u = main(nu)
         return assemble(inner(u, u) * dx)
 
-    conv_rate=taylor_test(Jhat, Control(nu), Jnu, dJdnu)
+    conv_rate = taylor_test(Jhat, Control(nu), Jnu, dJdnu)
 
     if conv_rate < 1.9:
         sys.exit(1)

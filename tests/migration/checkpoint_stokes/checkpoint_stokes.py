@@ -134,6 +134,6 @@ if __name__ == "__main__":
         return assemble(T * T * dx)
 
     JT = assemble(T * T * dx)
-    dJdic = compute_derivative(e(J, m)
-    minconv=taylor_test(Jhat, m, JT, dJdic, value=ic)
+    dJdic = compute_derivative(J, m)
+    minconv = taylor_test(Jhat, m, JT, dJdic, value=ic)
     assert minconv > 1.9
