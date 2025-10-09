@@ -43,7 +43,7 @@ Core classes
 .. autoclass:: OverloadedType
 
     .. automethod:: _ad_init_object
-    .. automethod:: _ad_riesz_map
+    .. automethod:: _ad_convert_riesz
     .. automethod:: _ad_create_checkpoint
     .. automethod:: _ad_restore_at_checkpoint
     .. automethod:: _ad_mul
