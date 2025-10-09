@@ -10,11 +10,12 @@ f = interpolate(Expression("sin(pi*x[0])", degree=1), V)
 # TODO: Workaround until interpolate is overloaded.
 f = Function(V, f.vector())
 
+
 def main(f, annotate=False):
-    u = Function(V, name = "system state")
+    u = Function(V, name="system state")
     w = TrialFunction(V)
-    a = w*v*dx
-    L = f*v*dx
+    a = w * v * dx
+    L = f * v * dx
     F = a - L
 
     bcs = None
@@ -26,19 +27,22 @@ def main(f, annotate=False):
 
     return u
 
+
 u = main(f, annotate=True)
 if False:
     # TODO: Not implemented yet.
     assert replay_dolfin()
 
-grad = compute_gradient(assemble(u*u*dx), Control(f))
+grad = compute_derivative(assemble(u * u * dx), Control(f))
 h = Function(V)
 h.vector()[:] = rand(V.dim())
 grad = h._ad_dot(grad)
 
+
 def J(f):
     u = main(f, annotate=False)
-    return assemble(u*u*dx)
+    return assemble(u * u * dx)
+
 
 minconv = taylor_test(J, f, h, grad)
 assert minconv > 1.9

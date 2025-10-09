@@ -26,7 +26,7 @@ if __name__ == "__main__":
     soln = main(ic, a, annotate=True)
 
     J = assemble(soln*soln*dx)
-    dJda = compute_gradient(J, Control(a))
+    dJda = compute_derivative(e(J, Control(a))
 
     h = Constant(1.0)
     dJda = h._ad_dot(dJda)

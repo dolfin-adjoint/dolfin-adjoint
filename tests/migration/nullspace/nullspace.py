@@ -60,20 +60,21 @@ mesh = UnitSquareMesh(24, 24)
 V = FunctionSpace(mesh, "CG", 1)
 null_space = Vector(Function(V).vector())
 V.dofmap().set(null_space, 1.0)
-null_space[:] = null_space/null_space.norm("l2")
+null_space[:] = null_space / null_space.norm("l2")
+
 
 def main(f, g):
     # Define variational problem
     u = TrialFunction(V)
     v = TestFunction(V)
-    a = inner(grad(u), grad(v))*dx
-    L = f*v*dx + g*v*ds
+    a = inner(grad(u), grad(v)) * dx
+    L = f * v * dx + g * v * ds
 
     # Assemble system
     A = assemble(a)
     b = assemble(L)
 
-    #bc = DirichletBC(V, 0.0, "on_boundary"); bc.apply(A); bc.apply(b)
+    # bc = DirichletBC(V, 0.0, "on_boundary"); bc.apply(A); bc.apply(b)
 
     # Solution Function
     u = Function(V)
@@ -84,18 +85,18 @@ def main(f, g):
     # Create null space basis and attach to Krylov solver
     null_vec = Vector(u.vector())
     V.dofmap().set(null_vec, 1.0)
-    null_vec *= 1.0/null_vec.norm("l2")
+    null_vec *= 1.0 / null_vec.norm("l2")
     null_space = VectorSpaceBasis([null_vec])
     solver.set_nullspace(null_space)
 
     # In this case, the system is symmetric, so the transpose nullspace is the same
-    solver.set_transpose_nullspace(null_space);
+    solver.set_transpose_nullspace(null_space)
 
     # When solving singular systems, you have to ensure that the RHS b is in the range
     # of the singular matrix. Since the range is the orthogonal complement of the
     # transpose nullspace, you have to call the orthogonalize method of the transpose
     # nullspace object on the RHS:
-    null_space.orthogonalize(b);
+    null_space.orthogonalize(b)
 
     solver.parameters["relative_tolerance"] = 1.0e-200
     solver.parameters["absolute_tolerance"] = 1.0e-14
@@ -106,21 +107,23 @@ def main(f, g):
 
     return u
 
+
 if __name__ == "__main__":
     g = interpolate(Expression("-sin(5*x[0])", degree=1), V, name="SourceG")
-    f = interpolate(Expression("10*exp(-(pow(x[0] - 0.5, 2) + pow(x[1] - 0.5, 2)) / 0.02)", degree=1), V, name="SourceF")
+    f = interpolate(Expression(
+        "10*exp(-(pow(x[0] - 0.5, 2) + pow(x[1] - 0.5, 2)) / 0.02)", degree=1), V, name="SourceF")
     u = main(f, g)
 
     parameters["adjoint"]["stop_annotating"] = True
 
     assert replay_dolfin(tol=0.0, stop=True)
 
-    frm = lambda u: inner(u, u)*dx
+    frm = lambda u: inner(u, u) * dx
 
     Jm = assemble(frm(u))
     J = Functional(frm(u))
     m = Control(f)
-    dJdm = compute_gradient(J, m, forget=False)
+    dJdm = compute_derivative(J, m, forget=False)
 
     def Jhat(f):
         u = main(f, g)

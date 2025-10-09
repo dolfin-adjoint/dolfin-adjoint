@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     J = j
     m = Control(ic)
-    dJdm = compute_gradient(J, m)
+    dJdm = compute_derivative(e(J, m)
     h = Function(V)
     h.vector()[:] = 1
     dJdm = h._ad_dot(dJdm)

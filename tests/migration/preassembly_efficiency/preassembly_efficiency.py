@@ -46,6 +46,7 @@ p = TrialFunction(Q)
 v = TestFunction(V)
 q = TestFunction(Q)
 
+
 def main(ic):
     # Set parameter values
     dt = 0.01
@@ -56,11 +57,11 @@ def main(ic):
     p_in = Expression("sin(3.0*t)", degree=1, t=0.0)
 
     # Define boundary conditions
-    noslip  = DirichletBC(V, (0, 0),
+    noslip = DirichletBC(V, (0, 0),
                           "on_boundary && \
                            (x[0] < DOLFIN_EPS | x[1] < DOLFIN_EPS | \
                            (x[0] > 0.5 - DOLFIN_EPS && x[1] > 0.5 - DOLFIN_EPS))")
-    inflow  = DirichletBC(Q, p_in, "x[1] > 1.0 - DOLFIN_EPS")
+    inflow = DirichletBC(Q, p_in, "x[1] > 1.0 - DOLFIN_EPS")
     outflow = DirichletBC(Q, 0, "x[0] > 1.0 - DOLFIN_EPS")
     bcu = [noslip]
     bcp = [inflow, outflow]
@@ -75,18 +76,18 @@ def main(ic):
     f = Constant((0, 0))
 
     # Tentative velocity step
-    F1 = (1/k)*inner(u - u0, v)*dx + inner(grad(u0)*u0, v)*dx + \
-         nu*inner(grad(u), grad(v))*dx - inner(f, v)*dx
+    F1 = (1 / k) * inner(u - u0, v) * dx + inner(grad(u0) * u0, v) * dx + \
+         nu * inner(grad(u), grad(v)) * dx - inner(f, v) * dx
     a1 = lhs(F1)
     L1 = rhs(F1)
 
     # Pressure update
-    a2 = inner(grad(p), grad(q))*dx
-    L2 = -(1/k)*div(u1)*q*dx
+    a2 = inner(grad(p), grad(q)) * dx
+    L2 = -(1 / k) * div(u1) * q * dx
 
     # Velocity update
-    a3 = inner(u, v)*dx
-    L3 = inner(u1, v)*dx - k*inner(grad(p1), v)*dx
+    a3 = inner(u, v) * dx
+    L3 = inner(u1, v) * dx - k * inner(grad(p1), v) * dx
 
     # Assemble matrices
     A1 = assemble(a1, cache=True)
@@ -96,14 +97,14 @@ def main(ic):
     prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
 
     begin("Projecting initial velocity")
-    phi = Function(Q, name = "ScalarPotential")
+    phi = Function(Q, name="ScalarPotential")
     b = assemble(-div(u0) * q * dx)
     [bc.apply(A2, b) for bc in bcp]
     solve(A2, phi.vector(), b, "gmres", prec)
     b = assemble(inner(u0, v) * dx - inner(grad(phi), v) * dx)
     [bc.apply(A3, b) for bc in bcu]
     solve(A3, u0.vector(), b, "gmres", "default")
-    del(phi, b)
+    del (phi, b)
     end()
 
     # Time-stepping
@@ -139,6 +140,7 @@ def main(ic):
         t += dt
     return u0
 
+
 if __name__ == "__main__":
 
     import sys
@@ -165,14 +167,14 @@ if __name__ == "__main__":
         if '--ignore' not in sys.argv:
             assert ratio < 1.5
 
-    J = assemble(inner(soln, soln)**1*dx + inner(ic, ic)*dx)
+    J = assemble(inner(soln, soln)**1 * dx + inner(ic, ic) * dx)
     m = Control(soln)
     adj_timer = Timer("Adjoint run")
-    dJdm = compute_gradient(J, m)
-    adj_time = adj_timer.stop()
+    dJdm = compute_derivative(e(J, m)
+    adj_time=adj_timer.stop()
 
     print("Adjoint time: ", adj_time)
-    ratio = adj_time / fwd_time
+    ratio=adj_time / fwd_time
     print("Ratio: ", ratio)
 
     if '--ignore' not in sys.argv:

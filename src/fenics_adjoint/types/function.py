@@ -231,7 +231,7 @@ class Function(FloatingType, dolfin.Function):
         dolfin.Function.assign(r, self + other)
         return r
 
-    def _ad_dot(self, other, options=None):
+    def _ad_dot(self, other, options: dict | None = None):
         options = {} if options is None else options
         riesz_representation = options.get("riesz_representation", "l2")
         if riesz_representation == "l2":
