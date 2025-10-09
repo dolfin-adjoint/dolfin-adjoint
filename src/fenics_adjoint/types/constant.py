@@ -78,8 +78,6 @@ class Constant(OverloadedType, dolfin.Constant):
                 return cls(obj)
 
     def _ad_init_zero(self, dual: bool = False):
-        if dual:
-            raise NotImplementedError("Duals of Constant are not implemented")
         return type(self)(numpy.zeros(self.ufl_shape))
 
     def _ad_riesz_map(self, value, riesz_map=None):
