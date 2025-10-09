@@ -51,3 +51,39 @@ ignore_missing_imports = true
 exclude = ["docs/", "build/"]
 # Folder to check with mypy
 files = ["src", "tests"]
+
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+      "E",      # pycodestyle
+      "W",      # pycodestyle
+      "F",      # pyflakes
+      "I",      # isort - use standalone isort
+      "RUF",    # Ruff-specific rules
+      "UP",     # pyupgrade
+      "ICN",    # flake8-import-conventions
+      "NPY",    # numpy-specific rules
+      "FLY",    # use f-string not static joins
+      "NPY201", # numpy 2.x ruleset
+]
+ignore = ["RUF012"]
+allowed-confusables = ["σ"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dolfin_adjoint", "pyadjoint"]
+known-third-party = ["dolfin"]
+section-order = [
+      "future",
+      "standard-library",
+      "mpi",
+      "third-party",
+      "first-party",
+      "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"mpi" = ["mpi4py", "petsc4py"]
