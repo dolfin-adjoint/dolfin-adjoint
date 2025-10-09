@@ -178,13 +178,13 @@ class Function(FloatingType, dolfin.Function):
         return Function(self.function_space())
 
     @no_annotations
-    def _ad_convert_riesz(self, value, riesz_map: typing.Literal["l2", "L2", "H1"] | typing.Callable = "l2"):
+    def _ad_convert_riesz(self, value, riesz_map: typing.Literal["l2", "L2", "H1"] | typing.Callable = "L2"):
 
         if riesz_map == "l2":
             return create_overloaded_object(
                 function_from_vector(self.function_space(), value)
             )
-        elif riesz_map == "L2":
+        elif riesz_map == "L2" or riesz_map is None:
             ret = Function(self.function_space())
             u = dolfin.TrialFunction(self.function_space())
             v = dolfin.TestFunction(self.function_space())
