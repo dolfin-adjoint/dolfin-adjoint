@@ -1,24 +1,26 @@
+import sys
+import random
 from dolfin import *
 from dolfin_adjoint import *
 
 dolfin.parameters["adjoint"]["record_all"] = True
 
-import random
-import sys
 
 mesh = UnitIntervalMesh(5)
 V2 = FunctionSpace(mesh, "CG", 2)
 V1 = FunctionSpace(mesh, "CG", 1)
+
 
 def main(ic, annotate=False):
 
     ic_proj = Function(V2, name="Projection")
     u = TrialFunction(V2)
     v = TestFunction(V2)
-    solve(inner(u, v)*dx == inner(ic, v)*dx, ic_proj, annotate=annotate)
+    solve(inner(u, v) * dx == inner(ic, v) * dx, ic_proj, annotate=annotate)
 
     out = interpolate(ic_proj, V1, annotate=annotate)
     return out
+
 
 if __name__ == "__main__":
     ic = Function(V2, name="InitialCondition")
@@ -32,7 +34,7 @@ if __name__ == "__main__":
 
 #  J = Functional(out*out*dx*dt[FINISH_TIME])
 #  icparam = FunctionControl("InitialCondition")
-#  dJdic = compute_gradient(J, icparam)
+#  dJdic = compute_derivative(J, icparam)
 #
 #  def J(ic):
 #    out = main(ic, annotate=False)

@@ -11,6 +11,7 @@ def main(m):
 
     return z
 
+
 if __name__ == "__main__":
     mesh = UnitSquareMesh(4, 4)
     V = FunctionSpace(mesh, "CG", 1)
@@ -19,15 +20,15 @@ if __name__ == "__main__":
     z = main(m)
 
     c = Control(m)
-    J = assemble(inner(z, z)*dx)
+    J = assemble(inner(z, z) * dx)
 
-    dJ = compute_gradient(J, c)
+    dJ = compute_derivative(J, c)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     dJ = h._ad_dot(dJ)
 
     def Jhat(m):
         z = main(m)
-        return assemble(inner(z, z)*dx)
+        return assemble(inner(z, z) * dx)
 
     minconv = taylor_test(Jhat, c, h, dJ)

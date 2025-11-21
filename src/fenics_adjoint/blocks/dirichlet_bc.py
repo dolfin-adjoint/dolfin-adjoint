@@ -28,8 +28,6 @@ def create_bc(bc, value=None, homogenize=None):
         bc = dolfin.DirichletBC(dolfin.FunctionSpace(bc.function_space()),
                                 value, *bc.domain_args)
     except AttributeError:
-        from IPython import embed
-
         bc = dolfin.DirichletBC(dolfin.FunctionSpace(bc.function_space()),
                                 value,
                                 bc.sub_domain, method=bc.method())
@@ -99,6 +97,7 @@ class DirichletBCBlock(Block):
 
                     r = dolfin.cpp.la.Vector(dolfin.MPI.comm_world, len(output))
                     r[:] = output
+                    r._function_space = self.parent_space
             elif isinstance(c, dolfin.Function):
                 # TODO: This gets a little complicated.
                 #       The function may belong to a different space,
@@ -109,10 +108,12 @@ class DirichletBCBlock(Block):
                 adj_value = dolfin.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 r = extract_bc_subvector(adj_value, c.function_space(), bc)
+                r._function_space = self.parent_space
             elif isinstance(c, dolfin.Expression):
                 adj_value = dolfin.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 output = extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                output._function_space = self.collapsed_space
                 r = [[output, self.collapsed_space]]
             if adj_output is None:
                 adj_output = r

@@ -9,6 +9,7 @@ f = Expression("x[0]*(x[0]-1)*x[1]*(x[1]-1)", degree=4)
 mesh = UnitSquareMesh(4, 4)
 V = FunctionSpace(mesh, "CG", 1)
 
+
 def main(ic, annotate=True):
     u = TrialFunction(V)
     v = TestFunction(V)
@@ -20,7 +21,7 @@ def main(ic, annotate=True):
 
     dt = Constant(0.1)
 
-    F = ( (u - u_0)/dt*v + inner(grad(u), grad(v)) + f*v)*dx
+    F = ((u - u_0) / dt * v + inner(grad(u), grad(v)) + f * v) * dx
 
     bc = DirichletBC(V, 1.0, "on_boundary")
 
@@ -32,21 +33,23 @@ def main(ic, annotate=True):
 
     while t <= T:
 
-        solve(a == L, u_0, bc, annotate=annotate, solver_parameters={"linear_solver": "cg", "preconditioner": "ilu", "krylov_solver": {"absolute_tolerance": 1.0e-16, "relative_tolerance": 1.0e-200}})
+        solve(a == L, u_0, bc, annotate=annotate, solver_parameters={"linear_solver": "cg", "preconditioner": "ilu", "krylov_solver": {
+              "absolute_tolerance": 1.0e-16, "relative_tolerance": 1.0e-200}})
         t += float(dt)
 
     return u_0
+
 
 if __name__ == "__main__":
 
     ic = Function(V, name="InitialCondition")
     u = main(ic)
 
-    J = assemble(u*u*u*u*dx)
+    J = assemble(u * u * u * u * dx)
     m = Control(ic)
-    dJdm = compute_gradient(J, m)
+    dJdm = compute_derivative(J, m)
     h = Function(V)
-    h.vector()[:] = rand(V.dim())*5000
+    h.vector()[:] = rand(V.dim()) * 5000
 
     dJdm = h._ad_dot(dJdm)
 
@@ -55,7 +58,7 @@ if __name__ == "__main__":
 
     def J(ic):
         u = main(ic, annotate=False)
-        return assemble(u*u*u*u*dx)
+        return assemble(u * u * u * u * dx)
 
     minconv = taylor_test(J, ic, h, dJdm, Hm=HJm)
     assert minconv > 2.9

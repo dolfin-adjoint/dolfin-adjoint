@@ -61,17 +61,26 @@ class Constant(OverloadedType, dolfin.Constant):
 
         return ret
 
-    def get_derivative(self, options={}):
-        return self._ad_convert_type(self.adj_value, options=options)
-
     @classmethod
     def _ad_init_object(cls, obj):
         # In FEniCS, passing a Constant to the Constant constructor is not possible when the Constant is nonscalar.
-        values = obj.values()
-        shape = obj.ufl_shape
-        return cls(numpy.reshape(values, shape))
+        if isinstance(obj, dolfin.Constant):
+            values = obj.values()
+            shape = obj.ufl_shape
+            return cls(numpy.reshape(values, shape))
+        else:
+            if isinstance(obj, dolfin.cpp.la.GenericVector):
+                if obj.size() == 1:
+                    return cls(obj.get_local()[0])
+                else:
+                    return cls(obj)
+            else:
+                return cls(obj)
 
-    def _ad_convert_type(self, value, options={}):
+    def _ad_init_zero(self, dual: bool = False):
+        return type(self)(numpy.zeros(self.ufl_shape))
+
+    def _ad_convert_riesz(self, value, riesz_map=None):
         if value is None:
             # TODO: Should the default be 0 constant here or return just None?
             return Constant(numpy.zeros(self.ufl_shape))

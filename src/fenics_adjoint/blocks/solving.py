@@ -211,12 +211,14 @@ class GenericSolveBlock(Block):
             dFdm = dolfin.derivative(-F_form_tmp, X, dolfin.TestFunction(c._ad_function_space()))
 
             dFdm = assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+            dFdm._function_space = c._ad_function_space  # NOTE: Fix to make modern pyadjoint work
             return dFdm
 
         dFdm = -dolfin.derivative(F_form, c_rep, trial_function)
         dFdm = dolfin.adjoint(dFdm)
         dFdm = dFdm * adj_sol
         dFdm = assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+        dFdm._function_space = trial_function.function_space()  # NOTE: Fix to make modern pyadjoint work
         if isinstance(c, dolfin.function.expression.BaseExpression):
             return [[dFdm, c_fs]]
         else:
@@ -432,7 +434,7 @@ class GenericSolveBlock(Block):
         hessian_output = 0
         if not hessian_form.empty():
             hessian_output -= assemble_adjoint_value(hessian_form)
-
+        hessian_output._function_space = W  # NOTE: Fix to make modern pyadjoint work
         if isinstance(c, dolfin.function.expression.BaseExpression):
             return [(hessian_output, W)]
         else:

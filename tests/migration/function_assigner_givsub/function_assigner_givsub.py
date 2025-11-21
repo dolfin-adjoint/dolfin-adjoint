@@ -14,6 +14,7 @@ ele = MixedElement([cg2, cg1])
 V = FunctionSpace(mesh, cg2)
 Z = FunctionSpace(mesh, ele)
 
+
 def main(z0):
     """ Maps
        [ v ]
@@ -26,6 +27,7 @@ def main(z0):
     assigner_u.assign(v, z0.sub(0))
 
     return v
+
 
 if __name__ == "__main__":
     z0 = interpolate(Constant((1, 2)), Z, name="State")
@@ -42,12 +44,12 @@ if __name__ == "__main__":
     success = replay_dolfin(tol=0.0, stop=True)
     assert success
 
-    form = lambda v: inner(v, v)*dx
+    form = lambda v: inner(v, v) * dx
 
     J = Functional(form(v), name="a")
     m = FunctionControl("State")
     Jm = assemble(form(v))
-    dJdm = compute_gradient(J, m, forget=False)
+    dJdm = compute_derivative(J, m, forget=False)
 
     eps = 0.0001
     dJdm_fd = Function(Z)
@@ -57,7 +59,7 @@ if __name__ == "__main__":
         vec[i] = vec[i][0] + eps
         v_ptb = main(z_ptb)
         J_ptb = assemble(form(v_ptb))
-        dJdm_fd.vector()[i] = (J_ptb - Jm)/eps
+        dJdm_fd.vector()[i] = (J_ptb - Jm) / eps
 
     print("dJdm_fd: ", list(dJdm_fd.vector()))
 
@@ -69,8 +71,6 @@ if __name__ == "__main__":
         dJdm_tlm_result.vector()[i] = dJdm_tlm.inner(test_vec.vector())
 
     print("dJdm_tlm: ", list(dJdm_tlm_result.vector()))
-
-
 
     def Jhat(z):
         v = main(z)
