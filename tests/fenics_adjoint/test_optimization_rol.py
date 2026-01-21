@@ -1,9 +1,13 @@
-import pytest
-pytest.importorskip("fenics")
-pytest.importorskip("ROL")
-
+import pyadjoint
 from fenics import *
 from fenics_adjoint import *
+from packaging.version import Version
+from importlib import metadata
+import pytest
+
+padj_version = metadata.version("pyadjoint-ad")
+pytest.importorskip("fenics")
+pytest.importorskip("ROL")
 
 
 def setup_problem(n=20):
@@ -12,15 +16,14 @@ def setup_problem(n=20):
     mesh = UnitSquareMesh(n, n)
 
     cf = MeshFunction("bool", mesh, mesh.topology().dim())
-    subdomain = CompiledSubDomain(
-        'std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
+    subdomain = CompiledSubDomain("std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25")
     subdomain.mark(cf, True)
     mesh = refine(mesh, cf)
     V = FunctionSpace(mesh, "CG", 1)
     W = FunctionSpace(mesh, "DG", 0)
 
     f = interpolate(Expression("x[0]+x[1]", degree=1), W)
-    u = Function(V, name='State')
+    u = Function(V, name="State")
     v = TestFunction(V)
 
     F = (inner(grad(u), grad(v)) - f * v) * dx
@@ -37,28 +40,33 @@ def setup_problem(n=20):
 
     rf = ReducedFunctional(J, control)
     params = {
-        'Step': {
-            'Type': 'Line Search',
+        "Step": {
+            "Type": "Line Search",
         },
-        'Status Test': {
-            'Gradient Tolerance': 1e-11,
-            'Iteration Limit': 20
-        }
+        "Status Test": {"Gradient Tolerance": 1e-11, "Iteration Limit": 20},
     }
     return rf, params, w, alpha
 
 
+@pytest.mark.xfail(
+    Version(padj_version) >= Version("2025.10.0"),
+    reason="ROL does not work with latest pyadjoint",
+    strict=True,
+)
 def test_finds_analytical_solution():
     rf, params, w, alpha = setup_problem()
     problem = MinimizationProblem(rf)
     solver = ROLSolver(problem, params, inner_product="L2")
     sol = solver.solve()
-    f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w",
-                            w=w, alpha=alpha, degree=3)
-
+    f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)
     assert errornorm(f_analytic, sol) < 0.02
 
 
+@pytest.mark.xfail(
+    Version(padj_version) >= Version("2025.10.0"),
+    reason="ROL does not work with latest pyadjoint",
+    strict=True,
+)
 def test_bounds_work_sensibly():
     rf, params, w, alpha = setup_problem()
     lower = 0
@@ -82,6 +90,9 @@ def test_bounds_work_sensibly():
 
 @pytest.mark.parametrize("contype", ["eq", "ineq"])
 def test_constraint_works_sensibly(contype):
+    if Version(padj_version) >= Version("2025.10.0"):
+        pytest.xfail("ROL does not work with latest pyadjoint")
+
     rf, params, w, alpha = setup_problem(n=7)
 
     class EqVolumeConstraint(EqualityConstraint):
@@ -101,7 +112,7 @@ def test_constraint_works_sensibly(contype):
             result.assign(self.smass.inner(-dm.vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = self.smass * (-1. * dp.values()[0])
+            result.vector()[:] = self.smass * (-1.0 * dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
             result.vector()[:] = 0.0
@@ -126,7 +137,7 @@ def test_constraint_works_sensibly(contype):
             result.assign(self.smass.inner(-dm.vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = self.smass * (-1. * dp.values()[0])
+            result.vector()[:] = self.smass * (-1.0 * dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
             result.vector()[:] = 0.0
@@ -135,24 +146,13 @@ def test_constraint_works_sensibly(contype):
             return Constant(0.0)
 
     params = {
-        'General': {
-            'Secant': {'Type': 'Limited-Memory BFGS', 'Maximum Storage': 10}},
-        'Step': {
-            'Type': 'Augmented Lagrangian',
-            'Line Search': {
-                'Descent Method': {
-                    'Type': 'Quasi-Newton Step'
-                }
-            },
-            'Augmented Lagrangian': {
-                'Subproblem Step Type': 'Line Search',
-                'Subproblem Iteration Limit': 10
-            }
+        "General": {"Secant": {"Type": "Limited-Memory BFGS", "Maximum Storage": 10}},
+        "Step": {
+            "Type": "Augmented Lagrangian",
+            "Line Search": {"Descent Method": {"Type": "Quasi-Newton Step"}},
+            "Augmented Lagrangian": {"Subproblem Step Type": "Line Search", "Subproblem Iteration Limit": 10},
         },
-        'Status Test': {
-            'Gradient Tolerance': 1e-7,
-            'Iteration Limit': 10
-        }
+        "Status Test": {"Gradient Tolerance": 1e-7, "Iteration Limit": 10},
     }
 
     f = rf.controls[0]
@@ -219,36 +219,28 @@ def test_constraint_works_sensibly(contype):
 
     sol1 = solver.solve().copy(deepcopy=True)
     if contype == "eq":
-        assert (abs(assemble(sol1 * dx) - vol) < 1e-5)
+        assert abs(assemble(sol1 * dx) - vol) < 1e-5
     elif contype == "ineq":
-        assert (assemble(sol1 * dx) < vol + 1e-5)
+        assert assemble(sol1 * dx) < vol + 1e-5
     else:
         raise NotImplementedError
 
 
 @pytest.mark.parametrize("contype", ["eq", "ineq"])
 def test_ufl_constraint_works_sensibly(contype):
+    if Version(padj_version) >= Version("2025.10.0"):
+        pytest.xfail("ROL does not work with latest pyadjoint")
+
     rf, params, w, alpha = setup_problem(n=7)
 
     params = {
-        'General': {
-            'Secant': {'Type': 'Limited-Memory BFGS', 'Maximum Storage': 10}},
-        'Step': {
-            'Type': 'Augmented Lagrangian',
-            'Line Search': {
-                'Descent Method': {
-                    'Type': 'Quasi-Newton Step'
-                }
-            },
-            'Augmented Lagrangian': {
-                'Subproblem Step Type': 'Line Search',
-                'Subproblem Iteration Limit': 20
-            }
+        "General": {"Secant": {"Type": "Limited-Memory BFGS", "Maximum Storage": 10}},
+        "Step": {
+            "Type": "Augmented Lagrangian",
+            "Line Search": {"Descent Method": {"Type": "Quasi-Newton Step"}},
+            "Augmented Lagrangian": {"Subproblem Step Type": "Line Search", "Subproblem Iteration Limit": 20},
         },
-        'Status Test': {
-            'Gradient Tolerance': 1e-7,
-            'Iteration Limit': 15
-        }
+        "Status Test": {"Gradient Tolerance": 1e-7, "Iteration Limit": 15},
     }
 
     f = rf.controls[0]
@@ -305,8 +297,8 @@ def test_ufl_constraint_works_sensibly(contype):
 
     sol1 = solver.solve().copy(deepcopy=True)
     if contype == "eq":
-        assert (abs(assemble(sol1**2 * dx) - vol) < 1e-5)
+        assert abs(assemble(sol1**2 * dx) - vol) < 1e-5
     elif contype == "ineq":
-        assert (assemble(sol1**2 * dx) < vol + 1e-5)
+        assert assemble(sol1**2 * dx) < vol + 1e-5
     else:
         raise NotImplementedError

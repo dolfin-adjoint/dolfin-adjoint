@@ -141,7 +141,7 @@ Also it must be ensured that the choice of inner product is consistent between b
 Thus, it is recommended that all blocks employ the :math:`l^2` inner product, i.e :math:`(u, v)_{l^2} = u^Tv`
 where :math:`u, v \in \mathbb{R}^n`.
 If the gradient with some other inner-product is desired, one can use Riesz representation theorem
-in the :py:meth:`OverloadedType._ad_convert_type` method of :py:class:`OverloadedType`.
+in the :py:meth:`OverloadedType._ad_convert_riesz` method of :py:class:`OverloadedType`.
 
 The attribute :py:data:`hessian_value` holds the computed hessian vector action.
 This should have the same type as :py:data:`adj_value`.
@@ -418,7 +418,7 @@ However, :py:func:`compute_gradient` also performs other convenient operations.
 For example, it utilizes the markings flag in the :py:meth:`Block.evaluate_adj` method.
 The markings are applied using the context manager :py:meth:`Tape.marked_nodes`.
 In addition, :py:func:`compute_gradient` converts :py:data:`adj_value` to overloaded types using the
-:py:meth:`OverloadedType._ad_convert_type` method.
+:py:meth:`OverloadedType._ad_convert_riesz` method.
 
 
 

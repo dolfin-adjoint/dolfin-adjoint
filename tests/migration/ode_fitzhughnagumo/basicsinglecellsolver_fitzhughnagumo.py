@@ -107,9 +107,9 @@ if __name__ == "__main__":
 
     # Step 3. Check ADM correctness
 
-    dJdm = compute_gradient(J, m, forget=False)
+    dJdm = compute_derivative(e(J, m, forget=False)
     assert dJdm is not None
     set_log_level(INFO)
-    minconv_adm = taylor_test(Jhat, m, Jm, dJdm,
+    minconv_adm=taylor_test(Jhat, m, Jm, dJdm,
                               perturbation_direction=interpolate(Constant((0.1,) * num_states), V), seed=1.0e-1)
     assert minconv_adm > 1.8

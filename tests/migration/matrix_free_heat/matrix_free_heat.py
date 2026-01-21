@@ -9,6 +9,7 @@ f = Expression("x[0]*(x[0]-1)*x[1]*(x[1]-1)", degree=4)
 mesh = UnitSquareMesh(4, 4)
 V = FunctionSpace(mesh, "CG", 1)
 
+
 def run_forward(initial_condition=None, annotate=True, dump=True):
     u = TrialFunction(V)
     v = TestFunction(V)
@@ -21,7 +22,7 @@ def run_forward(initial_condition=None, annotate=True, dump=True):
 
     dt = Constant(0.1)
 
-    F = ( (u - u_0)/dt*v + inner(grad(u), grad(v)) + f*v)*dx
+    F = ((u - u_0) / dt * v + inner(grad(u), grad(v)) + f * v) * dx
 
     bc = DirichletBC(V, 1.0, "on_boundary")
 
@@ -49,6 +50,7 @@ def run_forward(initial_condition=None, annotate=True, dump=True):
 
     return u_0
 
+
 if __name__ == "__main__":
 
     final_forward = run_forward()
@@ -57,19 +59,19 @@ if __name__ == "__main__":
     adj_html("heat_adjoint.html", "adjoint")
 
     # The functional is only a function of final state.
-    functional=Functional(final_forward*final_forward*dx*dt[FINISH_TIME])
-    dJdic = compute_gradient(functional, InitialConditionParameter(final_forward), forget=False)
+    functional = Functional(final_forward * final_forward * dx * dt[FINISH_TIME])
+    dJdic = compute_derivative(functional, InitialConditionParameter(final_forward), forget=False)
 
     def J(ic):
         perturbed_u0 = run_forward(initial_condition=ic, annotate=False, dump=False)
-        return assemble(perturbed_u0*perturbed_u0*dx)
+        return assemble(perturbed_u0 * perturbed_u0 * dx)
 
     minconv = utils.test_initial_condition_adjoint(J, Function(V), dJdic, seed=10.0)
 
     if minconv < 1.9:
         sys.exit(1)
 
-    dJ = assemble(derivative(final_forward*final_forward*dx, final_forward))
+    dJ = assemble(derivative(final_forward * final_forward * dx, final_forward))
 
     ic = final_forward
     ic.vector()[:] = 0

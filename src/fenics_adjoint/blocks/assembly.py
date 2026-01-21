@@ -108,8 +108,9 @@ class AssembleBlock(Block):
         elif isinstance(c, dolfin.Mesh):
             c_rep = dolfin.SpatialCoordinate(c_rep)
             space = c._ad_function_space()
-
-        return self.compute_action_adjoint(adj_input, arity_form, form, c_rep, space)[0]
+        vec = self.compute_action_adjoint(adj_input, arity_form, form, c_rep, space)[0]
+        vec._function_space = space  # Hack to pass FunctionSpaces with Vectors
+        return vec
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
@@ -188,6 +189,8 @@ class AssembleBlock(Block):
             ddform = ufl.algorithms.expand_derivatives(ddform)
             if not ddform.empty():
                 hessian_outputs += self.compute_action_adjoint(adj_input, arity_form, dform=ddform)[0]
+
+        hessian_outputs._function_space = space  # Hack to pass FunctionSpaces with Vectors
 
         if isinstance(c1, dolfin.function.expression.BaseExpression):
             return [(hessian_outputs, space)]

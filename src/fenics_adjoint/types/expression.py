@@ -36,7 +36,7 @@ _IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_init_object', '_cppcode', '_parameters', 
                                   '__class__', '_ufl_is_terminal_', '__rpow__', '__lt__', '__div__', '__del__',
                                   '__unicode__', '_ufl_obj_init_counts_', 'value_size', '_ad_kwargs', '__repr__',
                                   '_ufl_obj_del_counts_', '_ufl_evaluate_scalar_', '__neg__', 'ufl_domains', 'count',
-                                  'cppcode', '__eq__', '_ad_convert_type', 'ad_ignored_attributes', 'set_property',
+                                  'cppcode', '__eq__', '_ad_convert_riesz', 'ad_ignored_attributes', 'set_property',
                                   'label', '_repr_latex_', 'name', '__le__', '__nonzero__', '_ad_copy',
                                   '_ad_floating_active', 'output_block', '_ufl_is_evaluation_',
                                   'original_block_variable', '__truediv__', 'adj_value', '__float__', '__hash__',
@@ -202,6 +202,7 @@ class ExpressionBlock(Block):
                         adj_output += dolfin.interpolate(adj_func.sub(i), c.function_space()).vector()
                 else:
                     adj_output += dolfin.interpolate(adj_func, c.function_space()).vector()
+                adj_output._function_space = c.function_space()
         return adj_output
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
@@ -301,6 +302,7 @@ class ExpressionBlock(Block):
                         hessian_output += dolfin.interpolate(hessian_func.sub(i), c1.function_space()).vector()
                 else:
                     hessian_output += dolfin.interpolate(hessian_func, c1.function_space()).vector()
+                hessian_output._function_space = c1.function_space()
         return hessian_output
 
     def recompute_component(self, inputs, block_variable, idx, prepared):

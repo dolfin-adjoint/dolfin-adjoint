@@ -34,24 +34,25 @@ from numpy.testing import assert_approx_equal
 
 def boundary_value(n):
     if n < 10:
-        return float(n)/10.0
+        return float(n) / 10.0
     else:
         return 1.0
+
 
 # Load mesh and subdomains
 mesh = Mesh("mesh.xml.gz")
 try:
-    sub_domains = MeshFunction("sizet", mesh, "subdomains.xml.gz");
+    sub_domains = MeshFunction("sizet", mesh, "subdomains.xml.gz")
 except:
-    sub_domains = MeshFunction("size_t", mesh, "subdomains.xml.gz");
-h = 2*Circumradius(mesh)
+    sub_domains = MeshFunction("size_t", mesh, "subdomains.xml.gz")
+h = 2 * Circumradius(mesh)
 
 # Create FunctionSpaces
 Q = FunctionSpace(mesh, "CG", 1)
 V = VectorFunctionSpace(mesh, "CG", 2)
 
 # Create velocity Function from file
-velocity = Function(V);
+velocity = Function(V)
 File("velocity.xml.gz") >> velocity
 
 
@@ -68,17 +69,17 @@ def main(u0, f):
     u_new = Function(Q)
 
     # Mid-point solution
-    u_mid = 0.5*(u0 + u)
+    u_mid = 0.5 * (u0 + u)
 
     # Residual
-    r = u-u0 + dt*(dot(velocity, grad(u_mid)) - c*div(grad(u_mid)) - f)
+    r = u - u0 + dt * (dot(velocity, grad(u_mid)) - c * div(grad(u_mid)) - f)
 
     # Galerkin variational problem
-    F = v*(u-u0)*dx + dt*(v*dot(velocity, grad(u_mid))*dx + c*dot(grad(v), grad(u_mid))*dx)
+    F = v * (u - u0) * dx + dt * (v * dot(velocity, grad(u_mid)) * dx + c * dot(grad(v), grad(u_mid)) * dx)
 
     # Add SUPG stabilisation terms
     vnorm = sqrt(dot(velocity, velocity))
-    F += (h/2.0*vnorm)*dot(velocity, grad(v))*r*dx
+    F += (h / 2.0 * vnorm) * dot(velocity, grad(v)) * r * dx
 
     # Create bilinear and linear forms
     a = lhs(F)
@@ -119,22 +120,23 @@ def main(u0, f):
 
         # Move to next interval and adjust boundary condition
         t += dt
-        g.b = boundary_value(int(t/dt))
+        g.b = boundary_value(int(t / dt))
 
     return u0
 
+
 if __name__ == "__main__":
     u0 = Function(Q, name="Tracer")
-    f  = Constant(0.0)
+    f = Constant(0.0)
     u = main(u0, f=f)
 
-    J = assemble(u*u*dx)
+    J = assemble(u * u * dx)
     param = Control(f)
     Jhat = ReducedFunctional(J, param)
     Jhat.optimize_tape()
     assert_approx_equal(Jhat(f), J)
 
-    dJdf = compute_gradient(J, param)
+    dJdf = compute_derivative(J, param)
     h = Constant(1.0)
     dJdm = h._ad_dot(dJdf)
 

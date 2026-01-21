@@ -21,25 +21,28 @@ from fenics_adjoint import *
 
 from numpy.random import rand
 
+
 def stokes(W, nu, f):
     (u, p) = TrialFunctions(W)
     (v, q) = TestFunctions(W)
-    a = (nu*inner(grad(u), grad(v)) +
-         p*div(v) + q*div(u))*dx
-    L = inner(f, v)*dx
+    a = (nu * inner(grad(u), grad(v))
+         + p * div(v) + q * div(u)) * dx
+    L = inner(f, v) * dx
     return (a, L)
+
 
 def temperature(X, kappa, v, t_, k):
     t = TrialFunction(X)
     s = TestFunction(X)
 
-    F = ((t - t_)/k*s + inner(kappa*grad(t), grad(s))
-         + dot(v, grad(t))*s)*dx - s*dx
+    F = ((t - t_) / k * s + inner(kappa * grad(t), grad(s))
+         + dot(v, grad(t)) * s) * dx - s * dx
     (a, L) = system(F)
     return (a, L)
 
+
 def flow_boundary_conditions(W):
-    u0 = Constant((0.0,0.0))
+    u0 = Constant((0.0, 0.0))
     bottom = DirichletBC(W.sub(0), (0.0, 0.0), "near(x[1], 0.0)")
     top = DirichletBC(W.sub(0), (0.0, 0.0), "near(x[1], 1.0)")
     left = DirichletBC(W.sub(0).sub(0), 0.0, "near(x[0], 0.0)")
@@ -47,13 +50,16 @@ def flow_boundary_conditions(W):
     bcs = [bottom, top, left, right]
     return bcs
 
+
 def temperature_boundary_conditions(Q):
     bc = DirichletBC(Q, 0.0, "near(x[1], 1.0)")
     return [bc]
 
+
 n = 16
 mesh = UnitSquareMesh(n, n)
 X = FunctionSpace(mesh, "CG", 1)
+
 
 def main(ic, annotate=False):
 
@@ -82,7 +88,7 @@ def main(ic, annotate=False):
     timestep = 0.1
 
     # Define flow equation
-    g = as_vector((Ra*T_, 0))
+    g = as_vector((Ra * T_, 0))
     flow_eq = stokes(W, nu, g)
 
     # Define temperature equation
@@ -97,23 +103,24 @@ def main(ic, annotate=False):
 
         solve(temp_eq[0] == temp_eq[1], T, temp_bcs, annotate=annotate)
         T_.assign(T, annotate=annotate)
-        #plot(T)
+        # plot(T)
 
         t += timestep
 
     return T_
 
+
 if __name__ == "__main__":
 
     # Run model
-    T0_expr = "0.5*(1.0 - x[1]*x[1]) + 0.01*cos(pi*x[0]/l)*sin(pi*x[1]/h)"
+    T0_expr compute_derivative(] * x[1]) + 0.01 * cos(pi * x[0] / l) * sin(pi * x[1] / h)"
     T0 = Expression(T0_expr, l=1.0, h=1.0, degree=1)
     ic = interpolate(T0, X)
     ic = Function(X, ic.vector())
     T = main(ic, annotate=True)
 
-    J = assemble(T*T*dx)
-    dJdic = compute_gradient(J, Control(ic))
+    J = assemble(T * T * dx)
+    dJdic = compute_derivative(J, Control(ic))
 
     h = Function(X)
     h.vector()[:] = rand(X.dim())
@@ -121,7 +128,7 @@ if __name__ == "__main__":
 
     def Jhat(ic):
         T = main(ic, annotate=False)
-        return assemble(T*T*dx)
+        return assemble(T * T * dx)
 
     minconv = taylor_test(Jhat, ic, h, dJdic)
     assert minconv > 1.9

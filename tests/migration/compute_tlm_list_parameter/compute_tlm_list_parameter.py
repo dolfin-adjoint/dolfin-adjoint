@@ -7,17 +7,19 @@ from dolfin_adjoint import *
 mesh = UnitSquareMesh(4, 4)
 V = FunctionSpace(mesh, "CG", 3)
 
+
 def main(ic, a, b, annotate=False):
     u = TrialFunction(V)
     v = TestFunction(V)
 
     bc = DirichletBC(V, "-1.0", "on_boundary")
 
-    mass = inner(u, v)*dx
+    mass = inner(u, v) * dx
     soln = Function(V)
 
-    solve(b*mass == a*action(mass, ic), soln, bc, annotate=annotate)
+    solve(b * mass == a * action(mass, ic), soln, bc, annotate=annotate)
     return soln
+
 
 if __name__ == "__main__":
 
@@ -33,14 +35,14 @@ if __name__ == "__main__":
         # just keep iterating until we get the last dudm
         pass
 
-    frm = inner(soln, soln)*dx
+    frm = inner(soln, soln) * dx
     dJdm_tlm = assemble(derivative(frm, soln)).inner(dudm.vector())
 
     J = Functional(frm)
-    m = [ConstantControl("a"), ConstantControl("b")] # get rid of the perturbation direction \delta m
+    m = [ConstantControl("a"), ConstantControl("b")]  # get rid of the perturbation direction \delta m
 
-    dJdm_adm = compute_gradient(J, m, forget=False)
-    dJdm_adm = float(dJdm_adm[0])*float(p[0]) + float(dJdm_adm[1])*float(p[1])
+    dJdm_adm = compute_derivative(J, m, forget=False)
+    dJdm_adm = float(dJdm_adm[0]) * float(p[0]) + float(dJdm_adm[1]) * float(p[1])
 
     print("dJdm_tlm: ", dJdm_tlm)
     print("dJdm_adm: ", dJdm_adm)

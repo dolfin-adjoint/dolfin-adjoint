@@ -11,8 +11,10 @@ n = 2
 mesh = UnitIntervalMesh(n)
 V = FunctionSpace(mesh, "CG", 1)
 
+
 def Dt(u, u_, timestep):
-    return (u - u_)/timestep
+    return (u - u_) / timestep
+
 
 def main(ic, annotate=False):
 
@@ -24,15 +26,15 @@ def main(ic, annotate=False):
     nu = Constant(0.0001)
     timestep = Constant(1.0)
 
-    F = (Dt(u, u_, timestep)*v
-         + u_*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (Dt(u, u_, timestep) * v
+         + u_ * u.dx(0) * v + nu * u.dx(0) * v.dx(0)) * dx
 
     (a, L) = system(F)
 
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
-    end = 3.0 # set to 1.0 - eps to compare against manual_hessian.py
+    end = 3.0  # set to 1.0 - eps to compare against manual_hessian.py
     u = Function(V)
 
     while (t <= end):
@@ -43,24 +45,25 @@ def main(ic, annotate=False):
 
     return u_
 
+
 if __name__ == "__main__":
 
-    ic = project(Constant(1.0),  V)
+    ic = project(Constant(1.0), V)
     forward = main(ic, annotate=True)
 
-    J = assemble(inner(forward, forward)**2*dx)
+    J = assemble(inner(forward, forward)**2 * dx)
     m = Control(ic)
 
-    dJdm = compute_gradient(J, m)
+    dJdm = compute_derivative(J, m)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    HJm  = compute_hessian(J, m, h)
+    HJm = compute_hessian(J, m, h)
     dJdm = h._ad_dot(dJdm)
     HJm = h._ad_dot(HJm)
 
     def Jfunc(ic):
         forward = main(ic, annotate=False)
-        return assemble(inner(forward, forward)**2*dx)
+        return assemble(inner(forward, forward)**2 * dx)
 
     minconv = taylor_test(Jfunc, ic, h, dJdm, Hm=HJm)
     assert minconv > 2.9

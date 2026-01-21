@@ -145,6 +145,8 @@ class ALEMoveBlock(Block):
         adj_value = self.get_outputs()[0].adj_value
         if adj_value is None:
             return
+        # NOTE: Hack to pass FunctionSpaces with Vectors
+        adj_value._function_space = self.get_dependencies()[1].checkpoint.function_space()
         self.get_dependencies()[0].add_adj_output(adj_value.copy())
         self.get_dependencies()[1].add_adj_output(adj_value)
 
@@ -169,6 +171,8 @@ class ALEMoveBlock(Block):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
+        hessian_input._function_space = self.get_dependencies()[1].checkpoint.function_space()
+
         self.get_dependencies()[0].add_hessian_output(hessian_input.copy())
         self.get_dependencies()[1].add_hessian_output(hessian_input)
 
@@ -197,7 +201,9 @@ class BoundaryMeshBlock(Block):
         f = dolfin.Function(dolfin.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
         f.vector()[:] = adj_value
         adj_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
-        self.get_dependencies()[0].add_adj_output(adj_value.vector())
+        vec = adj_value.vector()
+        vec._function_space = adj_value.function_space()
+        self.get_dependencies()[0].add_adj_output(vec)
 
     @no_annotations
     def evaluate_tlm(self, markings=False):
@@ -217,7 +223,9 @@ class BoundaryMeshBlock(Block):
         f = dolfin.Function(dolfin.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
         f.vector()[:] = hessian_input
         hessian_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
-        self.get_dependencies()[0].add_hessian_output(hessian_value.vector())
+        vec = hessian_value.vector()
+        vec._function_space = hessian_value.function_space()
+        self.get_dependencies()[0].add_hessian_output(vec)
 
     @no_annotations
     def recompute(self):
